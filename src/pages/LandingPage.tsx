@@ -19,7 +19,7 @@ import { Footer } from "@/components/Footer";
 const principles = [
   {
     id: "bird-in-hand",
-    title: "Bird-in-Hand",
+    title: "Pássaro na Mão",
     shortDesc: "Comece com o que você já tem",
     microExplanation: "Use quem você é, o que sabe e quem conhece para começar agora.",
     icon: <Navigation className="h-6 w-6" />,
@@ -30,7 +30,7 @@ const principles = [
   },
   {
     id: "affordable-loss",
-    title: "Affordable Loss",
+    title: "Perda Aceitável",
     shortDesc: "Arrisque só o que pode perder",
     microExplanation: "Defina quanto você pode arriscar antes de investir.",
     icon: <Target className="h-6 w-6" />,
@@ -41,7 +41,7 @@ const principles = [
   },
   {
     id: "crazy-quilt",
-    title: "Crazy Quilt",
+    title: "Colcha de Retalhos",
     shortDesc: "Cresça com parcerias",
     microExplanation: "Traga pessoas para o projeto e construa em rede.",
     icon: <Users className="h-6 w-6" />,
@@ -52,7 +52,7 @@ const principles = [
   },
   {
     id: "lemonade",
-    title: "Lemonade",
+    title: "Limonada",
     shortDesc: "Transforme surpresas em vantagem",
     microExplanation: "Transforme obstáculos e imprevistos em novas oportunidades.",
     icon: <Lightbulb className="h-6 w-6" />,
@@ -63,7 +63,7 @@ const principles = [
   },
   {
     id: "pilot-in-plane",
-    title: "Pilot-in-the-Plane",
+    title: "Piloto no Avião",
     shortDesc: "Você controla o futuro",
     microExplanation: "Construa o futuro a partir das ações de hoje, sem depender de previsões.",
     icon: <TrendingUp className="h-6 w-6" />,
@@ -123,7 +123,7 @@ const comparisonData = {
     ],
   },
   effectuation: {
-    title: "Lógica Effectual (Effie)",
+    title: "Método Effectuation",
     icon: <Rocket className="w-10 h-10 mx-auto text-primary" />,
     points: [
       "Foca nos meios já disponíveis",
@@ -175,7 +175,7 @@ export default function LandingPage() {
           <div className="absolute bottom-[-10%] left-[5%] w-[400px] h-[400px] rounded-full bg-indigo-400/15 dark:bg-indigo-600/10 blur-[100px] pointer-events-none" />
           <div className="absolute top-[30%] left-[40%] w-[300px] h-[300px] rounded-full bg-sky-400/10 dark:bg-blue-500/8 blur-[80px] pointer-events-none" />
           {/* Subtle grid pattern */}
-          <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.03]" style={{backgroundImage: 'radial-gradient(circle, rgba(100,100,180,0.8) 1px, transparent 1px)', backgroundSize: '32px 32px'}} />
+          <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, rgba(100,100,180,0.8) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
           <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
             {/* Left: Copy */}
@@ -309,11 +309,11 @@ export default function LandingPage() {
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-foreground dark:text-white font-semibold text-sm">Gerando MVP...</span>
                         <div className="flex gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" style={{animationDelay: '0ms'}} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" style={{animationDelay: '150ms'}} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" style={{animationDelay: '300ms'}} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" style={{animationDelay: '450ms'}} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" style={{animationDelay: '600ms'}} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" style={{ animationDelay: '300ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" style={{ animationDelay: '450ms' }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" style={{ animationDelay: '600ms' }} />
                         </div>
                       </div>
                       {/* MVP Items */}
@@ -368,11 +368,11 @@ export default function LandingPage() {
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-sm font-medium mb-4">
                   <span>O Problema</span>
                 </div>
-                <h2 className="text-3xl md:text-5xl font-extrabold text-foreground mb-6 leading-tight">
-                  Empreendedores têm ideias <span className="text-muted-foreground">mas não sabem estruturar.</span>
+                <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
+                  Empreendedores com grandes ideias <span className="text-muted-foreground">merecem clareza para colocá-las em prática.</span>
                 </h2>
-                <p className="text-lg text-muted-foreground">
-                  A maioria das ideias morre no papel porque o planejamento tradicional exige certezas que você ainda não tem. O excesso de burocracia trava a execução real.
+                <p className="text-lg text-muted-foreground max-w-3xl">
+                  Muitas ideias promissoras ficam pelo caminho não por falta de potencial, mas porque os métodos tradicionais de planejamento pedem respostas que ainda estão em construção. Que tal um caminho mais leve e prático?
                 </p>
               </motion.div>
 
@@ -403,7 +403,7 @@ export default function LandingPage() {
                 <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-primary/20 rounded-full blur-3xl" />
                 <Bot className="w-12 h-12 text-primary mb-6" />
                 <h3 className="text-xl font-bold mb-3">Inteligência Estruturada</h3>
-                <p className="text-muted-foreground">Nossa IA não apenas gera textos; ela guia suas ações, extrai seus recursos atuais e acompanha sua execução diária.</p>
+                <p className="text-muted-foreground">Nossa IA não apenas gera textos. Ela guia suas ações, extrai seus recursos atuais e acompanha sua execução diária.</p>
               </motion.div>
 
               <motion.div
@@ -667,7 +667,10 @@ export default function LandingPage() {
             </p>
 
             <div className="flex justify-center">
-              <button className="w-full sm:w-auto h-auto text-base sm:text-lg px-4 sm:px-10 py-4 sm:py-8 rounded-2xl btn-gradient font-bold shadow-xl hover:shadow-primary/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 whitespace-normal">
+              <button
+                className="w-full sm:w-auto h-auto text-base sm:text-lg px-4 sm:px-10 py-4 sm:py-8 rounded-2xl btn-gradient font-bold shadow-xl hover:shadow-primary/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-2 whitespace-normal"
+                onClick={() => navigate('/auth')}
+              >
                 Descubra os novos recursos
               </button>
             </div>
