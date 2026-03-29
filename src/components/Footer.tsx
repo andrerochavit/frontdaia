@@ -9,9 +9,9 @@ export function Footer({ className = "" }: FooterProps) {
     return (
         <footer className={`glass-panel border-t border-white/30 dark:border-white/10 py-12 mt-auto ${className}`}>
             <div className="container mx-auto px-4 max-w-6xl">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10 place-items-center text-center">
                     {/* Brand */}
-                    <div className="col-span-2 sm:col-span-1">
+                    <div className="col-span-2 sm:col-span-1 flex flex-col items-center">
                         <div className="flex items-center gap-2.5 mb-3">
                             <div className="w-8 h-8 btn-gradient rounded-lg flex items-center justify-center shadow-sm">
                                 <Bot className="w-4 h-4 text-white" />
@@ -24,7 +24,7 @@ export function Footer({ className = "" }: FooterProps) {
                     </div>
 
                     {/* Produto */}
-                    <div>
+                    <div className="flex flex-col items-center">
                         <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-3">Produto</h4>
                         <ul className="space-y-2">
                             <li>
@@ -37,16 +37,12 @@ export function Footer({ className = "" }: FooterProps) {
                                     Método Effectuation
                                 </a>
                             </li>
-                            <li>
-                                <Link to="/contato" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Contato
-                                </Link>
-                            </li>
+
                         </ul>
                     </div>
 
                     {/* Legal */}
-                    <div>
+                    <div className="flex flex-col items-center">
                         <h4 className="text-xs font-bold uppercase tracking-widest text-foreground mb-3">Legal</h4>
                         <ul className="space-y-2">
                             <li>

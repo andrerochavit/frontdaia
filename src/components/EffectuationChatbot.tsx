@@ -408,8 +408,8 @@ const EffectuationChatbot = ({
                 >
                   {/* Only show avatar for bot */}
                   {message.isBot ? (
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg btn-gradient flex items-center justify-center shrink-0 text-xs shadow-sm mt-0.5">
-                      🤖
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg btn-gradient flex items-center justify-center shadow-none ring-0 focus:ring-0 focus:outline-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" className="ring-0 lucide lucide-bot w-4 h-4 sm:w-5 sm:h-5 text-white" data-lov-id="src/components/ChatHeader.tsx:18:10" data-lov-name="Bot" data-component-path="src/components/ChatHeader.tsx" data-component-line="18" data-component-file="ChatHeader.tsx" data-component-name="Bot" data-component-content="%7B%22className%22%3A%22w-4%20h-4%20sm%3Aw-5%20sm%3Ah-5%20text-white%22%7D"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg>
                     </div>
                   ) : (
                     <div className="w-7 sm:w-8 shrink-0" />
@@ -434,7 +434,15 @@ const EffectuationChatbot = ({
                           : {}
                       }
                     >
-                      <MarkdownMessage content={message.text} />
+                      {message.isBot && !message.text ? (
+                        <div className="flex items-center gap-1.5 h-6 px-1">
+                          <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                      ) : (
+                        <MarkdownMessage content={message.text} />
+                      )}
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-0.5 px-1">
                       {message.timestamp}

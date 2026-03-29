@@ -32,7 +32,7 @@ import {
     UserRound,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { processNetworkContact } from "@/services/networkAnalysisService";
+import { processNetworkContact, uploadCsvFileToBucket, StoredResumeJson } from "@/services/networkAnalysisService";
 import {
     Select,
     SelectContent,
@@ -54,6 +54,7 @@ interface ContactData {
     role: string;
     file_url: string | null;
     file_name: string | null;
+    file_json: StoredResumeJson | null;
     extracted_skills: string[];
     extracted_experience: string;
     possible_value: string;
@@ -149,7 +150,7 @@ export default function NetworkPage() {
             if (error) {
                 console.error("Error fetching contacts:", error);
             } else {
-                setContacts((data as ContactData[]) || []);
+                setContacts((data as unknown as ContactData[]) || []);
             }
         } catch (error) {
             console.error("Error:", error);
@@ -195,20 +196,24 @@ export default function NetworkPage() {
         }
 
         setImportLoading(true);
-        toast({ title: "Lendo documento...", description: "A IA está extraindo os dados." });
+        toast({ title: "Lendo documento...", description: "Estamos extraindo o texto do arquivo." });
         try {
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
             const result = await processNetworkContact(
                 user.id,
                 file.name.replace(/\.[^/.]+$/, ""), // base name fallback
                 "outro", // base role fallback
-                file,
-                apiKey
+                file
             );
 
             if (result.success) {
                 toast({ title: "Currículo processado! 🎉", description: "O contato foi adicionado à sua rede." });
+                if (result.warning) {
+                    toast({
+                        title: "Migração pendente",
+                        description: result.warning,
+                        variant: "destructive",
+                    });
+                }
                 fetchContacts();
             } else {
                 toast({ title: "Erro ao processar", description: result.error, variant: "destructive" });
@@ -227,6 +232,11 @@ export default function NetworkPage() {
 
         setImportLoading(true);
         try {
+            const uploadResult = await uploadCsvFileToBucket(user.id, file);
+            if (!uploadResult.success) {
+                throw new Error(uploadResult.error || "Falha ao enviar o CSV para o Supabase");
+            }
+
             const text = await file.text();
             const rows = text.split('\n');
             if (rows.length < 2) throw new Error("CSV vazio ou sem cabeçalho válido");
@@ -308,23 +318,27 @@ export default function NetworkPage() {
         setSubmitting(true);
 
         try {
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
             const result = await processNetworkContact(
                 user.id,
                 formName.trim(),
                 formRole,
-                formFile,
-                apiKey
+                formFile
             );
 
             if (result.success) {
                 toast({
                     title: "Contato adicionado!",
                     description: formFile
-                        ? "Analisando documento com IA..."
+                        ? "Texto do documento armazenado no seu banco."
                         : "Contato salvo na sua rede.",
                 });
+                if (result.warning) {
+                    toast({
+                        title: "Migração pendente",
+                        description: result.warning,
+                        variant: "destructive",
+                    });
+                }
                 resetForm();
                 setShowModal(false);
                 fetchContacts();
@@ -409,9 +423,13 @@ export default function NetworkPage() {
 
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
+            {/* Theme Toggle — top right relative to the page */}
+            <div className="absolute top-8 right-4 md:right-8 z-50">
+                <ThemeToggle />
+            </div>
             {/* Decorative orbs */}
-            <div className="glow-orb w-96 h-96 bg-emerald-300 dark:bg-emerald-800 -top-32 -right-16" />
-            <div className="glow-orb w-72 h-72 bg-teal-300 dark:bg-teal-800 bottom-0 -left-16" />
+            <div className="glow-orb w-96 h-96 bg-emerald-300 dark:bg-emerald-800 -top-32 -right-16 opacity-30 sm:opacity-100" />
+            <div className="glow-orb w-72 h-72 bg-teal-300 dark:bg-teal-800 bottom-0 -left-16 opacity-30 sm:opacity-100" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
                 {/* Header */}
@@ -424,31 +442,23 @@ export default function NetworkPage() {
                         <NavMenuButton />
 
                         <div className="w-full">
-                            <div className="flex items-center justify-between">
-
-                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
-                                        <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                                    </div>
-                                    Perfil
-                                </h1>
-
-                                {/* Mobile only */}
-                                <div className="sm:hidden">
-                                    <ThemeToggle />
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
+                                    <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                                 </div>
-
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
+                                    Minha Rede
+                                </h1>
                             </div>
 
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">   <span className="hidden sm:inline sm:ml-[52px]">Indexe currículos e contatos para o assistente</span>
-                                <span className="sm:hidden text-white text-sm mt-0.5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">Indexe planilhas e currículos</span>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:ml-[52px]">
+                                Indexe currículos e contatos aqui
                             </p>
-
 
                         </div>
 
                     </div>
-
+                    {/* ThemeToggle removed from here as it's now fixed at the top right */}
 
                 </motion.div>
 
@@ -537,7 +547,7 @@ export default function NetworkPage() {
                             Sua rede estratégica está vazia.
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-                            Comece de duas formas para que a IA analise e indexe o potencial de cada conexão:
+                            Comece de duas formas para indexar o potencial de cada conexão:
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-lg mx-auto">
                             <Button
@@ -798,7 +808,7 @@ export default function NetworkPage() {
                                                     Clique para enviar PDF ou DOCX
                                                 </p>
                                                 <p className="text-[10px] text-muted-foreground/60 mt-1">
-                                                    A IA analisará o documento automaticamente
+                                                    O texto do documento será salvo automaticamente
                                                 </p>
                                             </button>
                                         )}

@@ -285,7 +285,31 @@ export async function markTaskDone(
   return response.json();
 }
 
-// ─── MVP Export ──────────────────────────────────────────────────────────────
+// ─── MVP Export & Generate ──────────────────────────────────────────────────────────────
+
+export async function generateMvp(userId: string): Promise<Record<string, unknown>> {
+  const response = await fetch(`${API_BASE_URL}/mvp/generate`, {
+    method: "POST",
+    headers: await buildHeaders(),
+    body: JSON.stringify({
+      user_id: userId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `MVP generate error (${response.status}): ${errorText || response.statusText}`,
+    );
+  }
+
+  const data = await response.json();
+  if (!data.ok) {
+    throw new Error(data.error || "Effectuation API returned an error");
+  }
+
+  return data.data;
+}
 
 /**
  * Downloads the latest MVP as a markdown file.

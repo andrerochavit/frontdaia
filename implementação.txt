@@ -1,0 +1,103 @@
+8 UI Changes for Effie Frontend
+All changes are desktop-specific unless stated otherwise; mobile behavior remains untouched.
+
+Task 1 & 2: Fixed Sidebar Button (top-left) + Theme Toggle (top-right) — Desktop Only
+These two tasks create a persistent floating toolbar for internal pages on desktop.
+
+Layout Component
+[MODIFY] 
+AppLayout.tsx
+For internal pages (isInternalPage branch), add a fixed desktop-only toolbar bar with:
+
+NavMenuButton
+ pinned to the far top-left
+ThemeToggle
+ pinned to the far top-right
+Use hidden md:flex so it only appears on desktop
+Add slight top padding to content so it doesn't overlap
+Already-positioned buttons in individual pages
+Existing 
+NavMenuButton
+ and 
+ThemeToggle
+ usage in 
+MvpPage
+, 
+Dashboard
+, 
+ChatHeader
+, 
+DiscFormPage
+ will remain as they are since those handle their own headers. The global toolbar in 
+AppLayout
+ provides the consistent desktop placement.
+
+Task 3: Landing Page Comparison Section — Auto-Animate + Hide on Mobile
+[MODIFY] 
+LandingPage.tsx
+Wrap the "Comparison Slider Section" (lines 532–587) with hidden md:block to hide on mobile
+Replace manual slider interaction with an auto-animation using useEffect + setInterval:
+Auto-oscillate sliderValue between 0→100→0 smoothly over ~6 seconds
+Keep the slider for manual override (pause auto on user interaction, resume after idle)
+Task 4: MVP & DISC Form Pages — Stretch on Desktop
+[MODIFY] 
+MvpPage.tsx
+Change max-w-4xl → max-w-6xl for the main container
+Add lg:grid-cols-3 to the sections grid so cards spread wider on large screens
+Increase card p-5 → p-6 lg:p-8 and add more vertical spacing gap-4 → gap-6
+[MODIFY] 
+DiscFormPage.tsx
+Change max-w-xl → max-w-2xl for the questionnaire container
+Increase option button padding p-4 → p-5 lg:p-6
+Add more space-y-2.5 → space-y-3 lg:space-y-4 between options
+Task 5: Block Left Sidebar Until First DISC Test
+[MODIFY] 
+ChatSidebar.tsx
+Check localStorage for disc_result_{userId} on mount
+If the user hasn't completed DISC, hide all sidebar navigation items and show a message/banner saying "Complete o teste DISC para acessar o menu"
+The sidebar trigger button should still work but show the CTA instead of nav items
+NOTE
+
+This is specifically for the /disc page context. On other pages the 
+DiscGuard
+ already redirects unauthenticated-DISC users. This change ensures the sidebar itself shows nothing useful until DISC is done.
+
+Task 6: Footer — Center Elements
+[MODIFY] 
+Footer.tsx
+Change the grid to center-justified: add text-center and place-items-center to the grid
+Center each column content with items-center text-center
+Center the brand section
+Task 7: Chat — Three Bouncing Dots While Thinking
+[MODIFY] 
+EffectuationChatbot.tsx
+When isLoading is true and the bot's message text is empty, render a TypingDots animation instead of empty text
+Create an inline TypingDots component: 3 small circles with staggered CSS animation-delay bouncing animation
+Add the CSS keyframes animation (@keyframes bounce) to 
+index.css
+Task 8: Chat — Replace Robot Emoji with Effie Image
+[MODIFY] 
+EffectuationChatbot.tsx
+Replace the 🤖 emoji in the bot avatar (line 412) with an <img> tag using 
+/effie.png
+The image should be small (w-4 h-4) and rounded to fit the avatar container
+Also update the landing page chat mockup avatar (line 292 in 
+LandingPage.tsx
+) for consistency
+Verification Plan
+Manual Verification (Browser)
+Use the browser tool to verify each task:
+
+Tasks 1 & 2: Navigate to an internal page (e.g. /dashboard) on desktop viewport → verify sidebar button is at top-left and theme toggle at top-right. Resize to mobile → verify they disappear.
+
+Task 3: Navigate to landing page / on desktop → verify the comparison section auto-animates the slider. Resize to mobile → verify the section is hidden.
+
+Task 4: Navigate to /mvp and /disc on desktop → verify wider layout with better spacing.
+
+Task 5: Clear disc_result_* from localStorage → navigate to /disc → verify sidebar shows restricted content.
+
+Task 6: Scroll to footer → verify grid items are centered.
+
+Task 7: Send a message in chat → verify three bouncing dots appear while waiting for response.
+
+Task 8: Open chat page → verify bot avatar shows the Effie image instead of 🤖.

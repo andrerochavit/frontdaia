@@ -3,33 +3,66 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-const NETWORK_FILE_ANALYSIS_PROMPT = `Você é um analisador de currículos e documentos profissionais.
+const STORAGE_BUCKET = "csvandcv";
 
-Analise o currículo ou documento profissional abaixo e extraia informações sobre a pessoa.
+const MAX_EXTRACTED_TEXT_LENGTH = 20000;
 
-REGRAS:
-- Extraia APENAS informações presentes no documento.
-- NÃO invente informações.
-- Para "possible_value_to_entrepreneur", pense em como essa pessoa poderia agregar valor a um empreendedor.
-- Sempre responda em português brasileiro.
+export interface StoredResumeJson {
+    user_id: string;
+    original_file_name: string;
+    processed_at: string;
+    mime_type: string;
+    size_bytes: number;
+    plain_text: string;
+}
 
-Categorias válidas para "role": "mentor", "fornecedor", "tecnico", "parceiro", "investidor", "cliente", "outro". (Escolha a que mais se aproxima, caso nenhuma se encaixe, use "outro").
+function sanitizeFileName(input: string): string {
+    return input
+        .toLowerCase()
+        .replace(/[^a-z0-9-_.]/gi, "_")
+        .replace(/_{2,}/g, "_")
+        .replace(/^_+|_+$/g, "") || "arquivo";
+}
 
-Retorne APENAS um JSON válido (sem markdown, sem code blocks):
-{
-  "name": "nome da pessoa (se encontrado no documento)",
-  "role": "classificação da pessoa (use uma das categorias válidas)",
-  "skills": ["habilidade 1", "habilidade 2"],
-  "experience": "resumo da experiência profissional",
-  "possible_value_to_entrepreneur": "como essa pessoa pode agregar valor como contato estratégico"
-}`;
+function sanitizePlainText(text: string): string {
+    if (!text) return "";
+    const chars: string[] = [];
 
-export interface AnalyzedContact {
-    name: string;
-    role?: string;
-    skills: string[];
-    experience: string;
-    possible_value_to_entrepreneur: string;
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+
+        // High surrogate
+        if (code >= 0xd800 && code <= 0xdbff) {
+            const nextCode = text.charCodeAt(i + 1);
+            if (nextCode >= 0xdc00 && nextCode <= 0xdfff) {
+                chars.push(text.slice(i, i + 2));
+                i++;
+            } else {
+                chars.push(" ");
+            }
+            continue;
+        }
+
+        // Low surrogate without preceding high surrogate
+        if (code >= 0xdc00 && code <= 0xdfff) {
+            chars.push(" ");
+            continue;
+        }
+
+        const isControl =
+            (code >= 0x0000 && code <= 0x0008) ||
+            code === 0x000b ||
+            code === 0x000c ||
+            (code >= 0x000e && code <= 0x001f);
+
+        if (isControl) {
+            chars.push(" ");
+        } else {
+            chars.push(text[i]);
+        }
+    }
+
+    return chars.join("").replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -80,19 +113,17 @@ async function extractTextFromPDF(file: File): Promise<string> {
             }
         }
 
-        const extractedText = text.join(" ").trim();
+        const extractedText = text.join(" ");
+        const sanitized = sanitizePlainText(extractedText);
 
         // If PDF text extraction failed, try reading as text
-        if (extractedText.length < 20) {
+        if (sanitized.length < 20) {
             const textContent = await file.text();
-            // Clean up binary content
-            const cleaned = textContent.replace(/[^\x20-\x7E\xC0-\xFF\u0100-\u017F\n\r\t]/g, " ")
-                .replace(/\s+/g, " ")
-                .trim();
+            const cleaned = sanitizePlainText(textContent);
             return cleaned.length > 20 ? cleaned : `[Conteúdo do arquivo: ${file.name}]`;
         }
 
-        return extractedText;
+        return sanitized;
     } catch {
         return `[Arquivo PDF: ${file.name}]`;
     }
@@ -106,167 +137,138 @@ async function extractTextFromDOCX(file: File): Promise<string> {
     try {
         const text = await file.text();
         // Extract text from XML tags
-        const cleaned = text
-            .replace(/<[^>]+>/g, " ")
-            .replace(/[^\x20-\x7E\xC0-\xFF\u0100-\u017F\n\r\t]/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
+        const cleaned = sanitizePlainText(
+            text
+                .replace(/<[^>]+>/g, " ")
+        );
         return cleaned.length > 20 ? cleaned : `[Conteúdo do arquivo: ${file.name}]`;
     } catch {
         return `[Arquivo DOCX: ${file.name}]`;
     }
 }
 
-/**
- * Analyze document content using AI.
- */
-export async function analyzeDocumentWithAI(
-    documentText: string,
-    apiKey: string,
-    model: string = "gemini-2.0-flash"
-): Promise<AnalyzedContact | null> {
-    try {
-        const contents = [
-            {
-                parts: [{ text: `${NETWORK_FILE_ANALYSIS_PROMPT}\n\n--- DOCUMENTO ---\n${documentText.slice(0, 4000)}` }],
-                role: "user",
-            },
-        ];
+function buildResumeJson(userId: string, file: File, plainText: string): StoredResumeJson {
+    const sanitized = sanitizePlainText(plainText);
+    const trimmedText =
+        sanitized.length > MAX_EXTRACTED_TEXT_LENGTH
+            ? `${sanitized.slice(0, MAX_EXTRACTED_TEXT_LENGTH)}...`
+            : sanitized;
 
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents,
-                    generationConfig: {
-                        temperature: 0.2,
-                        maxOutputTokens: 1000,
-                        responseMimeType: "application/json",
-                    },
-                }),
-            }
-        );
-
-        if (!response.ok) {
-            console.warn("[NetworkAnalysis] API error:", response.statusText);
-            return null;
-        }
-
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!text) return null;
-
-        const cleanedText = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        const parsed = JSON.parse(cleanedText) as AnalyzedContact;
-
-        return {
-            name: parsed.name || "",
-            role: parsed.role || "",
-            skills: Array.isArray(parsed.skills) ? parsed.skills : [],
-            experience: parsed.experience || "",
-            possible_value_to_entrepreneur: parsed.possible_value_to_entrepreneur || "",
-        };
-    } catch (error) {
-        console.error("[NetworkAnalysis] Error:", error);
-        return null;
-    }
+    return {
+        user_id: userId,
+        original_file_name: file.name,
+        processed_at: new Date().toISOString(),
+        mime_type: file.type || "application/octet-stream",
+        size_bytes: file.size,
+        plain_text: trimmedText,
+    };
 }
 
-/**
- * Upload file to Supabase storage (network_docs bucket).
- */
-export async function uploadNetworkFile(
+export async function uploadCsvFileToBucket(
     userId: string,
     file: File
-): Promise<{ url: string; fileName: string } | null> {
+): Promise<{ success: boolean; url?: string; error?: string }> {
     try {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${userId}/${Date.now()}_${file.name}`;
+        const baseName = file.name.replace(/\.[^/.]+$/, "") || "contatos";
+        const extension = file.name.split(".").pop() || "csv";
+        const sanitizedBase = sanitizeFileName(baseName);
+        const objectName = `${userId}/${Date.now()}_${sanitizedBase}.${extension}`;
 
         const { error } = await supabase.storage
-            .from("network_docs")
-            .upload(fileName, file);
+            .from(STORAGE_BUCKET)
+            .upload(objectName, file, { contentType: file.type || "text/csv" });
 
-        if (error) {
-            console.error("[NetworkUpload] Upload error:", error);
-            // Even if storage upload fails, we continue with the analysis
-            return { url: "", fileName: file.name };
-        }
+        if (error) throw error;
 
-        const { data: urlData } = supabase.storage
-            .from("network_docs")
-            .getPublicUrl(fileName);
-
-        return { url: urlData.publicUrl, fileName: file.name };
-    } catch {
-        return { url: "", fileName: file.name };
+        const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectName);
+        return { success: true, url: urlData.publicUrl };
+    } catch (error: any) {
+        console.error("[NetworkUpload] CSV upload error:", error);
+        return { success: false, error: error.message || "Falha ao enviar CSV para o bucket" };
     }
 }
 
 /**
- * Full flow: upload file, analyze with AI, save contact, sync profile.
+ * Full flow: process file, generate JSON artifact, save contact, sync profile.
  */
+interface ProcessResult {
+    success: boolean;
+    contactId?: string;
+    error?: string;
+    warning?: string;
+}
+
 export async function processNetworkContact(
     userId: string,
     name: string,
     role: string,
-    file: File | null,
-    apiKey: string,
-    model?: string
-): Promise<{ success: boolean; contactId?: string; error?: string }> {
+    file: File | null
+): Promise<ProcessResult> {
     try {
-        let fileUrl = "";
         let fileName = "";
-        let skills: string[] = [];
         let experience = "";
-        let possibleValue = "";
+        let resumeJson: StoredResumeJson | null = null;
 
-        // Upload file and analyze if provided
+        // Build JSON when a file is provided
         if (file) {
-            const uploadResult = await uploadNetworkFile(userId, file);
-            if (uploadResult) {
-                fileUrl = uploadResult.url;
-                fileName = uploadResult.fileName;
-            }
-
-            // Extract text and analyze
             const documentText = await extractTextFromFile(file);
-            const analysis = await analyzeDocumentWithAI(documentText, apiKey, model);
-
-            if (analysis) {
-                skills = analysis.skills;
-                experience = analysis.experience;
-                possibleValue = analysis.possible_value_to_entrepreneur;
-                // Use extracted name if the user didn't provide one
-                if (!name && analysis.name) {
-                    name = analysis.name;
-                }
-                if (!role && analysis.role) {
-                    role = analysis.role;
-                }
-            }
+            const sanitizedText = sanitizePlainText(documentText);
+            resumeJson = buildResumeJson(userId, file, sanitizedText);
+            experience = sanitizedText.slice(0, 800);
+            fileName = file.name;
         }
 
         // Save contact
-        const { data: contact, error } = await supabase
+        const contactPayload: Record<string, unknown> = {
+            user_id: userId,
+            name,
+            role,
+            file_url: null,
+            file_name: fileName || null,
+            extracted_skills: [],
+            extracted_experience: experience,
+            possible_value: "",
+            file_json: resumeJson,
+        };
+
+        let { data: contact, error } = await supabase
             .from("network_contacts")
-            .insert({
-                user_id: userId,
-                name,
-                role,
-                file_url: fileUrl || null,
-                file_name: fileName || null,
-                extracted_skills: skills,
-                extracted_experience: experience,
-                possible_value: possibleValue,
-            })
+            .insert(contactPayload)
             .select()
             .single();
 
         if (error) {
+            const missingColumn =
+                resumeJson &&
+                typeof error.message === "string" &&
+                error.message.toLowerCase().includes("file_json");
+
+            if (missingColumn) {
+                console.warn("[NetworkContacts] file_json column missing. Falling back without JSON payload.");
+                const fallbackPayload = { ...contactPayload };
+                delete fallbackPayload.file_json;
+
+                const fallback = await supabase
+                    .from("network_contacts")
+                    .insert(fallbackPayload)
+                    .select()
+                    .single();
+
+                if (fallback.error) {
+                    return { success: false, error: fallback.error.message };
+                }
+
+                contact = fallback.data;
+
+                await syncContactWithProfile(userId, role);
+
+                return {
+                    success: true,
+                    contactId: contact.id,
+                    warning: "Execute a migração do Supabase para criar a coluna file_json e salvar o texto completo dos currículos.",
+                };
+            }
+
             return { success: false, error: error.message };
         }
 

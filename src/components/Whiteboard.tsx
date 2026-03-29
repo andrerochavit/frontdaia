@@ -255,7 +255,7 @@ export default function Whiteboard({ }: WhiteboardProps) {
         {tasks.length === 0 ? (
           <div className="glass-card rounded-xl p-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Nenhuma tarefa ainda. Adicione sua primeira acima! ✨
+              Nenhuma tarefa ainda. Adicione sua primeira acima!
             </p>
           </div>
         ) : (

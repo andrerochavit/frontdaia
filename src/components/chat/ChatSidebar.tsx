@@ -342,7 +342,7 @@ export function ChatSidebar({
                   onClick={() => handleNav("/network")}
                 >
                   <UserCircle className="h-4 w-4 text-emerald-500" />
-                  <span>Perfil</span>
+                  <span>Minha rede</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -357,7 +357,7 @@ export function ChatSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   className="gap-2.5 py-2 px-3 text-sm rounded-xl hover:bg-sidebar-accent"
-                  onClick={() => handleNav("/disc")}
+                  onClick={() => handleNav("/disc-profile")}
                 >
                   <ClipboardList className="h-4 w-4 text-orange-500" />
                   <span>Perfil DISC</span>
