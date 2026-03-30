@@ -23,7 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     // Internal pages that should have the sidebar frame
     const isInternalPage = ["/network", "/mvp", "/profile", "/disc", "/contato"].some(path => location.pathname.startsWith(path));
-
+    
     // Hide sidebar on /disc if the user hasn't completed the test yet
     const hideSidebarForFirstDisc = location.pathname === "/disc" && !hasDisc;
 

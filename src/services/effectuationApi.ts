@@ -45,6 +45,23 @@ export interface HealthResponse {
   model: string;
 }
 
+export type NetworkSourceType = "pdf" | "docx" | "csv" | "json" | "text";
+
+export interface NetworkAnalysisResult {
+  skills: string[];
+  contacts: string[];
+  experience_summary: string;
+  possible_value: string;
+  insights?: string;
+}
+
+export interface NetworkAnalysisRequest {
+  userId: string;
+  context: string;
+  sourceType?: NetworkSourceType;
+  maxSkills?: number;
+}
+
 // ─── Base URL ────────────────────────────────────────────────────────────────
 
 /**
@@ -348,4 +365,41 @@ export async function checkHealth(): Promise<HealthResponse> {
   }
 
   return response.json();
+}
+
+export async function analyzeNetworkContext({
+  userId,
+  context,
+  sourceType = "text",
+  maxSkills = 8,
+}: NetworkAnalysisRequest): Promise<NetworkAnalysisResult> {
+  const response = await fetch(`${API_BASE_URL}/network/analyze`, {
+    method: "POST",
+    headers: await buildHeaders(),
+    body: JSON.stringify({
+      user_id: userId,
+      context,
+      source_type: sourceType,
+      max_skills: maxSkills,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Network analysis error (${response.status}): ${errorText || response.statusText}`,
+    );
+  }
+
+  const data = (await response.json()) as {
+    ok: boolean;
+    result?: NetworkAnalysisResult;
+    error?: string;
+  };
+
+  if (!data.ok || !data.result) {
+    throw new Error(data.error || "Effectuation API retornou erro na análise de networking");
+  }
+
+  return data.result;
 }

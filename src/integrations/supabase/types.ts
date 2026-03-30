@@ -112,6 +112,7 @@ export type Database = {
           role: string
           file_url: string | null
           file_name: string | null
+          file_json: Json | null
           extracted_skills: string[]
           extracted_experience: string
           possible_value: string
@@ -125,6 +126,7 @@ export type Database = {
           role?: string
           file_url?: string | null
           file_name?: string | null
+          file_json?: Json | null
           extracted_skills?: string[]
           extracted_experience?: string
           possible_value?: string
@@ -138,9 +140,61 @@ export type Database = {
           role?: string
           file_url?: string | null
           file_name?: string | null
+          file_json?: Json | null
           extracted_skills?: string[]
           extracted_experience?: string
           possible_value?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resume_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          file_url: string | null
+          file_name: string | null
+          source_type: string | null
+          extracted_skills: string[]
+          experience_summary: string
+          value_proposition: string
+          stakeholders: string[]
+          plain_text: string | null
+          analysis: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          file_url?: string | null
+          file_name?: string | null
+          source_type?: string | null
+          extracted_skills?: string[]
+          experience_summary?: string
+          value_proposition?: string
+          stakeholders?: string[]
+          plain_text?: string | null
+          analysis?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          file_url?: string | null
+          file_name?: string | null
+          source_type?: string | null
+          extracted_skills?: string[]
+          experience_summary?: string
+          value_proposition?: string
+          stakeholders?: string[]
+          plain_text?: string | null
+          analysis?: Json | null
           created_at?: string
           updated_at?: string
         }

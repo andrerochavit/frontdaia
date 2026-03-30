@@ -32,7 +32,8 @@ import {
     UserRound,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { processNetworkContact, uploadCsvFileToBucket, StoredResumeJson } from "@/services/networkAnalysisService";
+import { processNetworkContact, processResumeProfile, uploadCsvFileToBucket } from "@/services/networkAnalysisService";
+import type { Tables } from "@/integrations/supabase/types";
 import {
     Select,
     SelectContent,
@@ -48,13 +49,15 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NavMenuButton from "@/components/NavMenuButton";
 
+type ResumeProfile = Tables<"resume_profiles">;
+
 interface ContactData {
     id: string;
     name: string;
     role: string;
     file_url: string | null;
     file_name: string | null;
-    file_json: StoredResumeJson | null;
+    file_json: Record<string, unknown> | null;
     extracted_skills: string[];
     extracted_experience: string;
     possible_value: string;
@@ -114,6 +117,13 @@ const CONTACT_ICONS = [
     { id: "phone", icon: Headphones },
 ];
 
+const SUPPORTED_CONTEXT_EXTENSIONS = ["pdf", "docx", "json", "csv"];
+const ICON_IDS = CONTACT_ICONS.map((item) => item.id);
+const isSupportedContextFile = (ext?: string | null) => {
+    if (!ext) return false;
+    return SUPPORTED_CONTEXT_EXTENSIONS.includes(ext);
+};
+
 export default function NetworkPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -121,7 +131,9 @@ export default function NetworkPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [contacts, setContacts] = useState<ContactData[]>([]);
+    const [resumeProfiles, setResumeProfiles] = useState<ResumeProfile[]>([]);
     const [loading, setLoading] = useState(true);
+    const [resumesLoading, setResumesLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [importLoading, setImportLoading] = useState(false);
@@ -136,6 +148,7 @@ export default function NetworkPage() {
 
     useEffect(() => {
         fetchContacts();
+        fetchResumeProfiles();
     }, [user]);
 
     async function fetchContacts() {
@@ -159,15 +172,37 @@ export default function NetworkPage() {
         }
     }
 
+    async function fetchResumeProfiles() {
+        if (!user) return;
+        setResumesLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from("resume_profiles")
+                .select("*")
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false });
+
+            if (error) {
+                console.error("Error fetching resumes:", error);
+            } else {
+                setResumeProfiles((data as ResumeProfile[]) || []);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        } finally {
+            setResumesLoading(false);
+        }
+    }
+
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
 
         const ext = file.name.split(".").pop()?.toLowerCase();
-        if (ext !== "pdf" && ext !== "docx") {
+        if (!isSupportedContextFile(ext)) {
             toast({
                 title: "Formato não suportado",
-                description: "Aceitos: PDF e DOCX",
+                description: "Envie PDF, DOCX, CSV ou JSON",
                 variant: "destructive",
             });
             return;
@@ -185,40 +220,30 @@ export default function NetworkPage() {
         setFormFile(file);
     }
 
-    const handleDirectPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleContextUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !user) return;
 
         const ext = file.name.split(".").pop()?.toLowerCase();
-        if (ext !== "pdf" && ext !== "docx") {
-            toast({ title: "Formato inválido", description: "Aceitos: PDF e DOCX", variant: "destructive" });
+        if (!isSupportedContextFile(ext)) {
+            toast({ title: "Formato inválido", description: "Envie PDF, DOCX, CSV ou JSON", variant: "destructive" });
             return;
         }
 
         setImportLoading(true);
-        toast({ title: "Lendo documento...", description: "Estamos extraindo o texto do arquivo." });
+        toast({ title: "Processando currículo...", description: "Extraindo habilidades, experiências e rede." });
         try {
-            const result = await processNetworkContact(
-                user.id,
-                file.name.replace(/\.[^/.]+$/, ""), // base name fallback
-                "outro", // base role fallback
-                file
-            );
+            const baseTitle = file.name.replace(/\.[^/.]+$/, "") || "Currículo";
+            const result = await processResumeProfile(user.id, baseTitle, file);
 
             if (result.success) {
-                toast({ title: "Currículo processado! 🎉", description: "O contato foi adicionado à sua rede." });
-                if (result.warning) {
-                    toast({
-                        title: "Migração pendente",
-                        description: result.warning,
-                        variant: "destructive",
-                    });
-                }
-                fetchContacts();
+                toast({ title: "Currículo indexado! 🎉", description: "Agora o Effie conhece suas habilidades reais." });
+                await fetchResumeProfiles();
             } else {
-                toast({ title: "Erro ao processar", description: result.error, variant: "destructive" });
+                toast({ title: "Erro ao processar currículo", description: result.error, variant: "destructive" });
             }
         } catch (err) {
+            console.error(err);
             toast({ title: "Erro inesperado", variant: "destructive" });
         } finally {
             setImportLoading(false);
@@ -361,7 +386,7 @@ export default function NetworkPage() {
     }
 
     async function handleDelete(contactId: string) {
-        if (!user) return; 0
+        if (!user) return;
 
         try {
             const { error } = await supabase
@@ -388,16 +413,55 @@ export default function NetworkPage() {
         }
     }
 
+    async function handleDeleteResume(profileId: string) {
+        if (!user) return;
+
+        try {
+            const { error } = await supabase
+                .from("resume_profiles")
+                .delete()
+                .eq("id", profileId)
+                .eq("user_id", user.id);
+
+            if (error) {
+                toast({
+                    title: "Erro ao remover currículo",
+                    description: error.message,
+                    variant: "destructive",
+                });
+            } else {
+                setResumeProfiles((prev) => prev.filter((profile) => profile.id !== profileId));
+                toast({ title: "Currículo removido" });
+            }
+        } catch (error) {
+            console.error("Error deleting resume:", error);
+            toast({
+                title: "Erro inesperado ao remover currículo",
+                variant: "destructive",
+            });
+        }
+    }
+
     async function handleUpdateAvatar(contactId: string, iconId: string) {
         if (!user) return;
         try {
+            const target = contacts.find((c) => c.id === contactId);
+            const updatedFileJson = {
+                ...(target?.file_json || {}),
+                icon_id: iconId,
+            };
+
             const { error } = await supabase
                 .from("network_contacts")
-                .update({ possible_value: iconId })
+                .update({ file_json: updatedFileJson })
                 .eq("id", contactId);
 
             if (error) throw error;
-            setContacts(prev => prev.map(c => c.id === contactId ? { ...c, possible_value: iconId } : c));
+            setContacts(prev =>
+                prev.map(c =>
+                    c.id === contactId ? { ...c, file_json: updatedFileJson } : c
+                )
+            );
         } catch (err) {
             console.error("Error updating avatar:", err);
         }
@@ -421,15 +485,23 @@ export default function NetworkPage() {
         return CONTACT_ICONS.find(i => i.id === iconId)?.icon || User;
     };
 
+    const resolveContactIconId = (contact: ContactData) => {
+        const storedIcon = contact.file_json?.icon_id;
+        if (storedIcon && ICON_IDS.includes(storedIcon)) return storedIcon;
+        if (ICON_IDS.includes(contact.possible_value)) return contact.possible_value;
+        return "user";
+    };
+
+    const hasTextualPossibleValue = (value?: string | null) => {
+        if (!value) return false;
+        return !ICON_IDS.includes(value);
+    };
+
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
-            {/* Theme Toggle — top right relative to the page */}
-            <div className="absolute top-8 right-4 md:right-8 z-50">
-                <ThemeToggle />
-            </div>
             {/* Decorative orbs */}
-            <div className="glow-orb w-96 h-96 bg-emerald-300 dark:bg-emerald-800 -top-32 -right-16 opacity-30 sm:opacity-100" />
-            <div className="glow-orb w-72 h-72 bg-teal-300 dark:bg-teal-800 bottom-0 -left-16 opacity-30 sm:opacity-100" />
+            <div className="glow-orb w-96 h-96 bg-emerald-300 dark:bg-emerald-800 -top-32 -right-16" />
+            <div className="glow-orb w-72 h-72 bg-teal-300 dark:bg-teal-800 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
                 {/* Header */}
@@ -442,23 +514,31 @@ export default function NetworkPage() {
                         <NavMenuButton />
 
                         <div className="w-full">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
-                                    <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                                </div>
-                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent drop-shadow-sm">
-                                    Minha Rede
+                            <div className="flex items-center justify-between">
+
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
+                                        <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                                    </div>
+                                    Perfil
                                 </h1>
+
+                                {/* Mobile only */}
+                                <div className="sm:hidden">
+                                    <ThemeToggle />
+                                </div>
+
                             </div>
 
-                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:ml-[52px]">
-                                Indexe currículos e contatos aqui
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">   <span className="hidden sm:inline sm:ml-[52px]">Indexe currículos e contatos para o assistente</span>
+                                <span className="sm:hidden text-white text-sm mt-0.5 drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">Indexe planilhas e currículos</span>
                             </p>
+
 
                         </div>
 
                     </div>
-                    {/* ThemeToggle removed from here as it's now fixed at the top right */}
+
 
                 </motion.div>
 
@@ -470,7 +550,7 @@ export default function NetworkPage() {
                     className="flex flex-col sm:flex-row gap-3 mb-8 w-full"
                 >
                     <input type="file" accept=".csv" className="hidden" ref={csvInputRef} onChange={handleCsvImport} disabled={importLoading} />
-                    <input type="file" accept=".pdf,.docx" className="hidden" ref={pdfInputRef} onChange={handleDirectPdfUpload} disabled={importLoading} />
+                    <input type="file" accept=".pdf,.docx,.json,.csv" className="hidden" ref={pdfInputRef} onChange={handleContextUpload} disabled={importLoading} />
 
                     <Button
                         onClick={() => csvInputRef.current?.click()}
@@ -502,110 +582,271 @@ export default function NetworkPage() {
                     </Button>
                 </motion.div>
 
-                {/* Stats Bar */}
-                <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 }}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
-                >
-                    <div className="glass-card rounded-xl p-4 text-center">
-                        <div className="text-2xl font-bold text-foreground">{contacts.length}</div>
-                        <div className="text-xs text-muted-foreground">Total</div>
-                    </div>
-                    {["mentor", "parceiro", "tecnico"].map((role) => (
-                        <div key={role} className="glass-card rounded-xl p-4 text-center">
-                            <div className="text-2xl font-bold text-foreground">
-                                {contacts.filter((c) => c.role === role).length}
+                <div className="space-y-10">
+                    <section>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">Currículos indexados</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Esses arquivos alimentam o Effie com suas habilidades reais.
+                                </p>
                             </div>
-                            <div className="text-xs text-muted-foreground">{getRoleLabel(role)}s</div>
+                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                {resumeProfiles.length} arquivo(s)
+                            </span>
                         </div>
-                    ))}
-                </motion.div>
 
-                {/* Contacts List */}
-                {loading ? (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="glass-card rounded-2xl p-6 animate-pulse">
-                                <div className="h-6 bg-primary/10 rounded w-1/3 mb-3" />
-                                <div className="h-4 bg-primary/5 rounded w-2/3 mb-2" />
-                                <div className="h-4 bg-primary/5 rounded w-1/2" />
+                        {resumesLoading ? (
+                            <div className="grid md:grid-cols-2 gap-4">
+                                {Array.from({ length: 2 }).map((_, i) => (
+                                    <div key={i} className="glass-card rounded-2xl p-6 animate-pulse">
+                                        <div className="h-5 bg-primary/10 rounded w-2/3 mb-2" />
+                                        <div className="h-4 bg-primary/5 rounded w-full mb-1" />
+                                        <div className="h-4 bg-primary/5 rounded w-3/4" />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                ) : contacts.length === 0 ? (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="glass-card rounded-2xl p-12 text-center"
-                    >
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-5 shadow-lg">
-                            <Users className="h-10 w-10 text-white" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-foreground mb-2">
-                            Sua rede estratégica está vazia.
-                        </h3>
-                        <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-                            Comece de duas formas para indexar o potencial de cada conexão:
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-lg mx-auto">
-                            <Button
-                                onClick={() => pdfInputRef.current?.click()}
-                                disabled={importLoading}
-                                className="btn-gradient rounded-xl font-semibold px-6 py-5 flex-1 h-auto flex-col gap-1 items-center justify-center"
+                        ) : resumeProfiles.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="glass-card rounded-2xl p-8 text-center"
                             >
-                                <span className="flex items-center gap-2"><Upload className="h-4 w-4" /> Upload Currículo</span>
-                                <span className="text-[10px] font-normal opacity-80">Effie extrai os dados do PDF</span>
-                            </Button>
-
-                            <Button
-                                onClick={() => csvInputRef.current?.click()}
-                                disabled={importLoading}
-                                className="btn-gradient rounded-xl font-semibold px-6 py-5 flex-1 h-auto flex-col gap-1 items-center justify-center"
-                            >
-                                <span className="flex items-center gap-2"><FileUp className="h-4 w-4 text-emerald-500" /> Importar CSV</span>
-                                <span className="text-[10px] font-normal opacity-80">Do LinkedIn ou de uma planilha</span>
-                            </Button>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <AnimatePresence mode="popLayout">
-                            {contacts.map((contact, index) => (
-                                <motion.div
-                                    key={contact.id}
-                                    initial={{ opacity: 0, y: 12 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ delay: index * 0.03 }}
-                                    className="glass-card rounded-2xl p-5 hover:shadow-md transition-all duration-200 group"
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-400 to-violet-500 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                    <FileText className="h-8 w-8 text-white" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-foreground mb-2">
+                                    Nenhum currículo indexado
+                                </h3>
+                                <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
+                                    Suba um PDF, DOCX, CSV ou JSON para que o Effie entenda seu histórico profissional.
+                                </p>
+                                <Button
+                                    onClick={() => pdfInputRef.current?.click()}
+                                    disabled={importLoading}
+                                    className="btn-gradient rounded-xl font-semibold px-6 py-3"
                                 >
-                                    {/* Card Header */}
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Enviar currículo
+                                </Button>
+                            </motion.div>
+                        ) : (
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <AnimatePresence mode="popLayout">
+                                    {resumeProfiles.map((profile, index) => (
+                                        <motion.div
+                                            key={profile.id}
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            className="glass-card rounded-2xl p-5 hover:shadow-md transition-all duration-200 group"
+                                        >
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <h3 className="font-semibold text-foreground text-sm leading-tight">
+                                                        {profile.title}
+                                                    </h3>
+                                                    {profile.experience_summary && (
+                                                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                                            {profile.experience_summary}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteResume(profile.id)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                                    title="Remover currículo"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+
+                                            {profile.extracted_skills?.length > 0 && (
+                                                <div className="mb-3">
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Star className="h-3 w-3 text-amber-500" />
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                            Skills principais
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {profile.extracted_skills.slice(0, 6).map((skill, i) => (
+                                                            <span
+                                                                key={`${profile.id}-skill-${i}`}
+                                                                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary"
+                                                            >
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {profile.value_proposition && (
+                                                <div className="mb-3">
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Sparkles className="h-3 w-3 text-primary" />
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                            Como você pode gerar valor
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                        {profile.value_proposition}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {profile.stakeholders?.length ? (
+                                                <div className="mb-3">
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Users className="h-3 w-3 text-emerald-500" />
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                            Contatos citados
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {profile.stakeholders.slice(0, 6).map((stakeholder, idx) => (
+                                                            <span
+                                                                key={`${profile.id}-stakeholder-${idx}`}
+                                                                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200"
+                                                            >
+                                                                {stakeholder}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+
+                                            {profile.file_name && (
+                                                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/50">
+                                                    <FileText className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-[10px] text-muted-foreground truncate">
+                                                        {profile.file_name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                        )}
+                    </section>
+
+                    <section>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">Contatos estratégicos</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Construídos a partir de CSVs ou adicionados manualmente.
+                                </p>
+                            </div>
+                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                                {contacts.length} contato(s)
+                            </span>
+                        </div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.05 }}
+                            className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"
+                        >
+                            <div className="glass-card rounded-xl p-4 text-center">
+                                <div className="text-2xl font-bold text-foreground">{contacts.length}</div>
+                                <div className="text-xs text-muted-foreground">Total</div>
+                            </div>
+                            {["mentor", "parceiro", "tecnico"].map((role) => (
+                                <div key={role} className="glass-card rounded-xl p-4 text-center">
+                                    <div className="text-2xl font-bold text-foreground">
+                                        {contacts.filter((c) => c.role === role).length}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">{getRoleLabel(role)}s</div>
+                                </div>
+                            ))}
+                        </motion.div>
+
+                        {loading ? (
+                            <div className="grid md:grid-cols-2 gap-4">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="glass-card rounded-2xl p-6 animate-pulse">
+                                        <div className="h-6 bg-primary/10 rounded w-1/3 mb-3" />
+                                        <div className="h-4 bg-primary/5 rounded w-2/3 mb-2" />
+                                        <div className="h-4 bg-primary/5 rounded w-1/2" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : contacts.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="glass-card rounded-2xl p-12 text-center"
+                            >
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-5 shadow-lg">
+                                    <Users className="h-10 w-10 text-white" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-foreground mb-2">
+                                    Nenhum contato cadastrado.
+                                </h3>
+                                <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                                    Importe um CSV ou use o formulário para cadastrar contatos estratégicos.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-lg mx-auto">
+                                    <Button
+                                        onClick={() => csvInputRef.current?.click()}
+                                        disabled={importLoading}
+                                        className="btn-gradient rounded-xl font-semibold px-6 py-5 flex-1 h-auto flex-col gap-1 items-center justify-center"
+                                    >
+                                        <span className="flex items-center gap-2"><FileUp className="h-4 w-4 text-emerald-500" /> Importar CSV</span>
+                                        <span className="text-[10px] font-normal opacity-80">Do LinkedIn ou planilhas</span>
+                                    </Button>
+                                    <Button
+                                        onClick={() => setShowModal(true)}
+                                        disabled={importLoading}
+                                        className="btn-gradient rounded-xl font-semibold px-6 py-5 flex-1 h-auto flex-col gap-1 items-center justify-center"
+                                    >
+                                        <span className="flex items-center gap-2"><Plus className="h-4 w-4" /> Adicionar manual</span>
+                                        <span className="text-[10px] font-normal opacity-80">Registre um contato único</span>
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <AnimatePresence mode="popLayout">
+                                    {contacts.map((contact, index) => (
+                                        <motion.div
+                                            key={contact.id}
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            className="glass-card rounded-2xl p-5 hover:shadow-md transition-all duration-200 group"
+                                        >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3">
                                             <Popover>
                                                 <PopoverTrigger asChild>
-                                                    <button
-                                                        className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 transition-transform active:scale-95 hover:scale-105 ${roleAvatars[contact.role] || roleAvatars.outro}`}
-                                                        title="Mudar ícone"
-                                                    >
-                                                        {(() => {
-                                                            const IconComp = getContactIcon(contact.possible_value);
-                                                            return <IconComp className="h-5 w-5 opacity-80" />;
-                                                        })()}
-                                                    </button>
+                                                        <button
+                                                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 transition-transform active:scale-95 hover:scale-105 ${roleAvatars[contact.role] || roleAvatars.outro}`}
+                                                          title="Mudar ícone"
+                                                      >
+                                                          {(() => {
+                                                            const iconId = resolveContactIconId(contact);
+                                                            const IconComp = getContactIcon(iconId);
+                                                              return <IconComp className="h-5 w-5 opacity-80" />;
+                                                          })()}
+                                                      </button>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-48 p-2 glass-card border-white/20">
                                                     <div className="grid grid-cols-4 gap-2">
                                                         {CONTACT_ICONS.map((item) => (
-                                                            <button
-                                                                key={item.id}
-                                                                onClick={() => handleUpdateAvatar(contact.id, item.id)}
-                                                                className={`p-2 rounded-lg hover:bg-primary/10 transition-colors flex items-center justify-center ${contact.possible_value === item.id ? 'bg-primary/20' : ''}`}
-                                                            >
-                                                                <item.icon className="h-4 w-4" />
-                                                            </button>
+                                                              <button
+                                                                  key={item.id}
+                                                                  onClick={() => handleUpdateAvatar(contact.id, item.id)}
+                                                                  className={`p-2 rounded-lg hover:bg-primary/10 transition-colors flex items-center justify-center ${resolveContactIconId(contact) === item.id ? 'bg-primary/20' : ''}`}
+                                                              >
+                                                                  <item.icon className="h-4 w-4" />
+                                                              </button>
                                                         ))}
                                                     </div>
                                                 </PopoverContent>
@@ -662,8 +903,19 @@ export default function NetworkPage() {
                                             </div>
                                         </div>
                                     )}
-
-
+                                    {hasTextualPossibleValue(contact.possible_value) && (
+                                        <div className="mb-3">
+                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                <Sparkles className="h-3 w-3 text-primary" />
+                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                    Como esse contato pode ajudar
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                                {contact.possible_value}
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* File badge */}
                                     {contact.file_name && (
@@ -679,6 +931,7 @@ export default function NetworkPage() {
                         </AnimatePresence>
                     </div>
                 )}
+                </section>
             </div>
 
             {/* Add Contact Modal */}
@@ -858,6 +1111,7 @@ export default function NetworkPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            </div>
         </div>
     );
 }

@@ -342,7 +342,7 @@ export function ChatSidebar({
                   onClick={() => handleNav("/network")}
                 >
                   <UserCircle className="h-4 w-4 text-emerald-500" />
-                  <span>Minha rede</span>
+                  <span>Perfil</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

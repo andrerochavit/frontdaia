@@ -31,3 +31,6 @@ Thumbs.db
 .cache/
 .next/
 out/
+
+# Supabase temps
+supabase/.temp/

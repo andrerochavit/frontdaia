@@ -14,8 +14,8 @@ const ChatMessage = ({ message, isBot, timestamp }: ChatMessageProps) => {
     )}>
       <div className={cn(
         "rounded-lg px-4 py-3 text-sm",
-        isBot
-          ? "bg-bot-message text-foreground"
+        isBot 
+          ? "bg-bot-message text-foreground" 
           : "bg-user-message text-primary-foreground"
       )}>
         {message}

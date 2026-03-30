@@ -2,10 +2,27 @@
 // Extracts skills, experience, and potential value from uploaded documents
 
 import { supabase } from "@/integrations/supabase/client";
+import {
+    analyzeNetworkContext,
+    type NetworkAnalysisResult,
+    type NetworkSourceType,
+} from "@/services/effectuationApi";
+import { getDocument, GlobalWorkerOptions, type TextContentItem } from "pdfjs-dist";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker?url";
 
 const STORAGE_BUCKET = "csvandcv";
 
 const MAX_EXTRACTED_TEXT_LENGTH = 20000;
+const MAX_ANALYSIS_CONTEXT_CHARS = 8000;
+
+GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
+
+const getItemText = (item: TextContentItem): string => {
+    if ("str" in item && typeof (item as { str?: unknown }).str === "string") {
+        return (item as { str: string }).str;
+    }
+    return "";
+};
 
 export interface StoredResumeJson {
     user_id: string;
@@ -14,6 +31,10 @@ export interface StoredResumeJson {
     mime_type: string;
     size_bytes: number;
     plain_text: string;
+    source_type?: NetworkSourceType;
+    file_url?: string | null;
+    analysis?: NetworkAnalysisResult;
+    icon_id?: string;
 }
 
 function sanitizeFileName(input: string): string {
@@ -22,6 +43,11 @@ function sanitizeFileName(input: string): string {
         .replace(/[^a-z0-9-_.]/gi, "_")
         .replace(/_{2,}/g, "_")
         .replace(/^_+|_+$/g, "") || "arquivo";
+}
+
+function toTextFileLabel(originalName: string): string {
+    const base = originalName.replace(/\.[^/.]+$/, "") || originalName || "documento";
+    return `${base}.txt`;
 }
 
 function sanitizePlainText(text: string): string {
@@ -76,6 +102,17 @@ export async function extractTextFromFile(file: File): Promise<string> {
         return extractTextFromPDF(file);
     } else if (fileType === "docx") {
         return extractTextFromDOCX(file);
+    } else if (fileType === "json") {
+        const text = await file.text();
+        try {
+            const parsed = JSON.parse(text);
+            return sanitizePlainText(JSON.stringify(parsed, null, 2));
+        } catch {
+            return sanitizePlainText(text);
+        }
+    } else if (fileType === "csv") {
+        const text = await file.text();
+        return sanitizePlainText(text);
     } else {
         // Fallback: try as plain text
         return await file.text();
@@ -83,48 +120,42 @@ export async function extractTextFromFile(file: File): Promise<string> {
 }
 
 /**
- * Simple PDF text extraction using the file's text content.
- * For production, consider using pdf.js or a server-side solution.
+ * PDF text extraction using pdf.js for higher fidelity.
  */
 async function extractTextFromPDF(file: File): Promise<string> {
     try {
-        // Read as ArrayBuffer and convert to text representation
-        const buffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(buffer);
+        const data = new Uint8Array(await file.arrayBuffer());
+        const loadingTask = getDocument({ data });
+        const pdf = await loadingTask.promise;
 
-        // Simple PDF text extraction: find text between parentheses in PDF stream
-        const text: string[] = [];
-        let inText = false;
-        let currentText = "";
-
-        for (let i = 0; i < uint8Array.length; i++) {
-            const char = String.fromCharCode(uint8Array[i]);
-
-            if (char === "(" && !inText) {
-                inText = true;
-                currentText = "";
-            } else if (char === ")" && inText) {
-                inText = false;
-                if (currentText.trim()) {
-                    text.push(currentText);
-                }
-            } else if (inText) {
-                currentText += char;
+        const pageChunks: string[] = [];
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+            const page = await pdf.getPage(pageNumber);
+            const content = await page.getTextContent();
+            const strings = content.items
+                .map((item) => getItemText(item))
+                .filter((chunk) => chunk && chunk.trim().length > 0);
+            if (strings.length > 0) {
+                pageChunks.push(strings.join(" "));
             }
         }
 
-        const extractedText = text.join(" ");
+        const extractedText = pageChunks.join("\n\n");
         const sanitized = sanitizePlainText(extractedText);
 
-        // If PDF text extraction failed, try reading as text
-        if (sanitized.length < 20) {
-            const textContent = await file.text();
-            const cleaned = sanitizePlainText(textContent);
-            return cleaned.length > 20 ? cleaned : `[Conteúdo do arquivo: ${file.name}]`;
+        if (sanitized.length >= 20) {
+            return sanitized;
         }
 
-        return sanitized;
-    } catch {
+        // Fallback: attempt to read as UTF-8 text directly (useful for text-only PDFs)
+        const fallbackContent = sanitizePlainText(await file.text());
+        if (fallbackContent.length >= 20) {
+            return fallbackContent;
+        }
+
+        return `[Conteúdo do arquivo: ${file.name}]`;
+    } catch (error) {
+        console.error("[PDFExtraction] Failed to read PDF", error);
         return `[Arquivo PDF: ${file.name}]`;
     }
 }
@@ -188,6 +219,36 @@ export async function uploadCsvFileToBucket(
     }
 }
 
+export async function uploadResumeFileToBucket(
+    userId: string,
+    originalFileName: string,
+    plainTextContent: string
+): Promise<{ success: boolean; url?: string; error?: string }> {
+    try {
+        const baseName = originalFileName.replace(/\.[^/.]+$/, "") || "curriculo";
+        const sanitizedBase = sanitizeFileName(baseName);
+        const objectName = `${userId}/resumes/${Date.now()}_${sanitizedBase}.txt`;
+
+        const blob = new Blob([plainTextContent], {
+            type: "text/plain; charset=utf-8",
+        });
+
+        const { error } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(objectName, blob, {
+                contentType: "text/plain; charset=utf-8",
+            });
+
+        if (error) throw error;
+
+        const { data: urlData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(objectName);
+        return { success: true, url: urlData.publicUrl };
+    } catch (error: any) {
+        console.error("[NetworkUpload] Resume upload error:", error);
+        return { success: false, error: error.message || "Falha ao enviar o currículo para o bucket" };
+    }
+}
+
 /**
  * Full flow: process file, generate JSON artifact, save contact, sync profile.
  */
@@ -198,6 +259,16 @@ interface ProcessResult {
     warning?: string;
 }
 
+interface ResumeProcessResult {
+    success: boolean;
+    profileId?: string;
+    error?: string;
+}
+
+function trimPlainText(text: string): string {
+    return text.slice(0, MAX_EXTRACTED_TEXT_LENGTH);
+}
+
 export async function processNetworkContact(
     userId: string,
     name: string,
@@ -206,6 +277,7 @@ export async function processNetworkContact(
 ): Promise<ProcessResult> {
     try {
         let fileName = "";
+        let fileUrl: string | null = null;
         let experience = "";
         let resumeJson: StoredResumeJson | null = null;
 
@@ -215,19 +287,52 @@ export async function processNetworkContact(
             const sanitizedText = sanitizePlainText(documentText);
             resumeJson = buildResumeJson(userId, file, sanitizedText);
             experience = sanitizedText.slice(0, 800);
-            fileName = file.name;
+            fileName = toTextFileLabel(file.name);
+            resumeJson.source_type = detectSourceType(file);
+
+            const uploadResult = await uploadResumeFileToBucket(
+                userId,
+                file.name,
+                resumeJson.plain_text || sanitizedText
+            );
+            if (!uploadResult.success) {
+                return { success: false, error: uploadResult.error || "Falha ao subir o arquivo para o Supabase" };
+            }
+            fileUrl = uploadResult.url || null;
+            resumeJson.file_url = fileUrl;
+
+            const context = sanitizedText.slice(0, MAX_ANALYSIS_CONTEXT_CHARS);
+            if (context.length >= 40) {
+                try {
+                    const analysis = await analyzeNetworkContext({
+                        userId,
+                        context,
+                        sourceType: resumeJson.source_type ?? "text",
+                        maxSkills: 12,
+                    });
+                    resumeJson.analysis = analysis;
+                    if (analysis.experience_summary) {
+                        experience = analysis.experience_summary;
+                    }
+                } catch (error: any) {
+                    console.error("[NetworkAnalysis] LLM analysis failed:", error);
+                }
+            }
         }
+
+        const resumeSkills = resumeJson?.analysis?.skills ?? [];
+        const resumePossibleValue = resumeJson?.analysis?.possible_value ?? "";
 
         // Save contact
         const contactPayload: Record<string, unknown> = {
             user_id: userId,
             name,
             role,
-            file_url: null,
+            file_url: fileUrl,
             file_name: fileName || null,
-            extracted_skills: [],
+            extracted_skills: resumeSkills,
             extracted_experience: experience,
-            possible_value: "",
+            possible_value: resumePossibleValue,
             file_json: resumeJson,
         };
 
@@ -281,6 +386,68 @@ export async function processNetworkContact(
     }
 }
 
+export async function processResumeProfile(
+    userId: string,
+    title: string,
+    file: File
+): Promise<ResumeProcessResult> {
+    try {
+        const sanitizedText = sanitizePlainText(await extractTextFromFile(file));
+        const trimmedPlain = trimPlainText(sanitizedText);
+        const context = sanitizedText.slice(0, MAX_ANALYSIS_CONTEXT_CHARS);
+        if (context.length < 40) {
+            return { success: false, error: "Conteúdo insuficiente para análise. O arquivo precisa conter mais informações." };
+        }
+
+        let analysis: NetworkAnalysisResult | null = null;
+        try {
+            analysis = await analyzeNetworkContext({
+                userId,
+                context,
+                sourceType: detectSourceType(file),
+                maxSkills: 12,
+            });
+        } catch (error: any) {
+            console.error("[ResumeAnalysis] LLM analysis failed:", error);
+        }
+
+        const uploadResult = await uploadResumeFileToBucket(userId, file.name, trimmedPlain);
+        if (!uploadResult.success) {
+            return { success: false, error: uploadResult.error || "Falha ao subir o arquivo para o Supabase" };
+        }
+
+        const storedFileName = toTextFileLabel(file.name);
+
+        const payload = {
+            user_id: userId,
+            title: title || file.name,
+            file_url: uploadResult.url,
+            file_name: storedFileName,
+            source_type: detectSourceType(file),
+            extracted_skills: analysis?.skills || [],
+            experience_summary: analysis?.experience_summary || sanitizedText.slice(0, 800),
+            value_proposition: analysis?.possible_value || "",
+            stakeholders: analysis?.contacts || [],
+            plain_text: trimmedPlain,
+            analysis,
+        };
+
+        const { data, error } = await supabase
+            .from("resume_profiles")
+            .insert(payload)
+            .select("id")
+            .single();
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+
+        return { success: true, profileId: data?.id };
+    } catch (error: any) {
+        return { success: false, error: error.message || "Erro inesperado ao processar currículo" };
+    }
+}
+
 /**
  * Sync a new contact's role with the effectuation profile's quem_conheco field.
  */
@@ -309,5 +476,21 @@ async function syncContactWithProfile(userId: string, role: string): Promise<voi
         }
     } catch (error) {
         console.error("[NetworkSync] Sync error:", error);
+    }
+}
+
+function detectSourceType(file: File | null): NetworkSourceType {
+    const ext = file?.name.split(".").pop()?.toLowerCase();
+    switch (ext) {
+        case "pdf":
+            return "pdf";
+        case "docx":
+            return "docx";
+        case "csv":
+            return "csv";
+        case "json":
+            return "json";
+        default:
+            return "text";
     }
 }

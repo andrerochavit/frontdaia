@@ -428,13 +428,8 @@ export default function MvpPage() {
 
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
-            {/* Theme Toggle — top right relative to the page */}
-            <div className="absolute top-8 right-4 md:right-8 z-50">
-                <ThemeToggle />
-            </div>
-
-            <div className="glow-orb w-96 h-96 bg-purple-400 -top-32 -right-16 opacity-30 sm:opacity-100" />
-            <div className="glow-orb w-72 h-72 bg-blue-300 bottom-0 -left-16 opacity-30 sm:opacity-100" />
+            <div className="glow-orb w-96 h-96 bg-purple-400 -top-32 -right-16" />
+            <div className="glow-orb w-72 h-72 bg-blue-300 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
                 {/* Header */}
@@ -446,10 +441,14 @@ export default function MvpPage() {
                     <div className="flex items-center gap-3">
                         <NavMenuButton />
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 dark:from-purple-400 dark:via-violet-400 dark:to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
-                                <Rocket className="h-7 w-7 text-purple-600 dark:text-purple-400 shrink-0" />
-                                Meu MVP
+                            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+                                Ideia
                             </h1>
+                            {mvpData?.pitch && (
+                                <p className="text-foreground/80 text-sm mt-0.5 max-w-xl leading-snug">
+                                    {mvpData.pitch}
+                                </p>
+                            )}
                             {(mvpData?.generated_at || mvpData?.conversations_count) && (
                                 <p className="text-muted-foreground text-xs mt-1 flex items-center gap-2">
                                     {mvpData.conversations_count !== undefined && (
@@ -476,11 +475,10 @@ export default function MvpPage() {
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <Button
-                            variant="outline"
                             size="sm"
                             onClick={generateMvpFromChat}
                             disabled={generating || downloading}
-                            className="rounded-xl font-semibold px-4 border-purple-400/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 dark:border-purple-500/40"
+                            className="btn-gradient rounded-xl font-semibold px-4"
                         >
                             <RefreshCw className={`h-4 w-4 mr-1.5 ${generating ? "animate-spin" : ""}`} />
                             {generating ? "Gerando..." : "Atualizar"}
@@ -491,27 +489,15 @@ export default function MvpPage() {
                                 size="sm"
                                 onClick={handleDownloadPDF}
                                 disabled={downloading || generating}
-                                className="rounded-xl font-semibold px-4 border-purple-400/50 text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 dark:border-purple-500/40"
+                                className="btn-gradient rounded-xl font-semibold px-4"
                             >
                                 <Download className="h-4 w-4 mr-1.5" />
                                 {downloading ? "Gerando PDF..." : "Baixar PDF"}
                             </Button>
                         )}
+                        <ThemeToggle />
                     </div>
                 </motion.div>
-
-                {/* Idea / Pitch container */}
-                {mvpData?.pitch && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.05 }}
-                        className="glass-card rounded-2xl px-5 py-4 mb-6 border border-purple-200/40 dark:border-purple-500/20 bg-gradient-to-r from-purple-50/80 to-indigo-50/60 dark:from-purple-900/30 dark:to-indigo-900/20"
-                    >
-                        <p className="text-xs font-semibold uppercase tracking-widest text-purple-500 dark:text-purple-400 mb-1"> Ideia</p>
-                        <p className="text-foreground/90 text-sm leading-relaxed">{mvpData.pitch}</p>
-                    </motion.div>
-                )}
 
                 {!mvpData ? (
                     <motion.div

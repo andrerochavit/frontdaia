@@ -223,8 +223,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen page-gradient relative overflow-hidden">
       {/* Decorative orbs */}
-      <div className="glow-orb w-72 h-72 bg-blue-300 -top-52 -right-16 opacity-30 sm:opacity-100" />
-      <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16 opacity-30 sm:opacity-100" />
+      <div className="glow-orb w-72 h-72 bg-blue-300 -top-52 -right-16" />
+      <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16" />
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
@@ -247,10 +247,10 @@ export default function Dashboard() {
               )}
             </button>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground drop-shadow-sm dark:drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                 Olá, <span className="text-primary">{displayName}</span>! 👋
               </h1>
-              <p className="text-foreground/90 mt-1 text-sm sm:text-base drop-shadow-sm dark:drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              <p className="text-foreground mt-1 text-sm sm:text-base">
                 Sua jornada empreendedora começa aqui.
               </p>
             </div>

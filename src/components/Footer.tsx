@@ -9,9 +9,9 @@ export function Footer({ className = "" }: FooterProps) {
     return (
         <footer className={`glass-panel border-t border-white/30 dark:border-white/10 py-12 mt-auto ${className}`}>
             <div className="container mx-auto px-4 max-w-6xl">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10 place-items-center text-center">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-10 text-center place-items-center">
                     {/* Brand */}
-                    <div className="col-span-2 sm:col-span-1 flex flex-col items-center">
+                    <div className="flex flex-col items-center">
                         <div className="flex items-center gap-2.5 mb-3">
                             <div className="w-8 h-8 btn-gradient rounded-lg flex items-center justify-center shadow-sm">
                                 <Bot className="w-4 h-4 text-white" />

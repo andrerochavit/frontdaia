@@ -121,11 +121,8 @@ export default function DiscProfilePage() {
 
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
-            {/* Theme Toggle — top right relative to the page */}
-            <div className="absolute top-8 right-4 md:right-8 z-50">
-                <ThemeToggle />
-            </div>            <div className="glow-orb w-96 h-96 bg-orange-300 -top-32 -right-16 opacity-30 sm:opacity-100" />
-            <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16 opacity-30 sm:opacity-100" />
+            <div className="glow-orb w-96 h-96 bg-orange-300 -top-32 -right-16" />
+            <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
                 {/* Header */}
@@ -136,7 +133,16 @@ export default function DiscProfilePage() {
                 >
                     <div className="flex items-center gap-2">
                         <NavMenuButton />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate("/dashboard")}
+                            className="glass-card border-0 hover:bg-white/80"
+                        >
+                            <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
+                        </Button>
                     </div>
+                    <ThemeToggle />
                 </motion.div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
@@ -154,7 +160,7 @@ export default function DiscProfilePage() {
                             >
                                 <span className="text-4xl">{profile.emoji}</span>
                             </div>
-                            <h1 className="text-2xl font-bold mb-3 bg-gradient-to-r from-orange-600 to-rose-600 dark:from-orange-400 dark:to-rose-400 bg-clip-text text-transparent drop-shadow-sm">
+                            <h1 className="text-2xl font-bold text-foreground mb-3">
                                 Seu Perfil DISC: {profile.name}
                             </h1>
                             <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-sm">
@@ -188,12 +194,7 @@ export default function DiscProfilePage() {
                             >
                                 <RefreshCw className="h-4 w-4 mr-2" /> Refazer o Teste DISC
                             </Button>
-
-
-
                         </motion.div>
-
-
                     </div>
 
                     {/* Right Column */}
