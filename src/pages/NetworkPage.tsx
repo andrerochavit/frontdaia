@@ -439,6 +439,7 @@ export default function NetworkPage() {
                 const rowText = trimmedLines[i];
                 if (!rowText) continue;
 
+<<<<<<< HEAD
                 const cols = parseCsvRow(rowText, separator);
                 const firstName = firstNameIdx !== -1 ? sanitizeCsvCell(cols[firstNameIdx]) : "";
                 const lastName = lastNameIdx !== -1 ? sanitizeCsvCell(cols[lastNameIdx]) : "";
@@ -459,6 +460,34 @@ export default function NetworkPage() {
                     extracted_experience: extractedExpParts.join(" na "),
                     possible_value: "",
                 });
+=======
+                const cols = rowText.split(separator);
+                if (cols.length < 2) continue;
+
+                const fullName = cols[nameIdx]?.trim() || '';
+                const company = companyIdx !== -1 ? cols[companyIdx]?.trim() : '';
+                const jobRole = roleIdx !== -1 ? cols[roleIdx]?.trim() : '';
+
+                if (fullName) {
+                    // Parse first and last name intelligently
+                    const nameParts = fullName.trim().split(/\s+/);
+                    const firstName = nameParts[0] || '';
+                    const lastName = nameParts.slice(1).join(' ') || '';
+                    
+                    newContacts.push({
+                        user_id: user.id,
+                        name: fullName, // Keep full name in the field
+                        // Store parsed names in file_json for future use
+                        file_json: {
+                            first_name: firstName,
+                            last_name: lastName,
+                        },
+                        role: jobRole || "outro",
+                        extracted_experience: [jobRole, company].filter(Boolean).join(' na '),
+                        possible_value: "",
+                    });
+                }
+>>>>>>> 09309e33fd69e8ff4d0d860a98ecfa4bcdfe26d3
             }
 
             if (newContacts.length > 0) {
@@ -643,8 +672,8 @@ export default function NetworkPage() {
     };
 
     const resolveContactIconId = (contact: ContactData) => {
-        const storedIcon = contact.file_json?.icon_id;
-        if (storedIcon && ICON_IDS.includes(storedIcon)) return storedIcon;
+        const storedIcon = (contact.file_json as any)?.icon_id;
+        if (storedIcon && typeof storedIcon === 'string' && ICON_IDS.includes(storedIcon)) return storedIcon;
         if (ICON_IDS.includes(contact.possible_value)) return contact.possible_value;
         return "user";
     };
@@ -657,13 +686,13 @@ export default function NetworkPage() {
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
             {/* Decorative orbs */}
-            <div className="glow-orb w-96 h-96 bg-emerald-300 dark:bg-emerald-800 -top-32 -right-16" />
+            <div className="glow-orb w-96 h-96 bg-emerald-800 dark:bg-emerald-800 -top-32 -right-16" />
             <div className="glow-orb w-72 h-72 bg-teal-300 dark:bg-teal-800 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
                 {/* Header */}
                 <motion.div
-                    initial={{ opacity: 0, y: -16 }}
+                    initial={{ opacity: 1, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
                 >
@@ -673,12 +702,13 @@ export default function NetworkPage() {
                         <div className="w-full">
                             <div className="flex items-center justify-between">
 
-                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
-                                        <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                                    </div>
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-green-500 to-green-400 bg-clip-text text-transparent">
+                                    
+                                        <UserCircle className="h-8 w-8 text-green-500" />
+                                    
                                     Perfil
                                 </h1>
+                                
 
                                 {/* Mobile only */}
                                 <div className="sm:hidden">
@@ -693,8 +723,11 @@ export default function NetworkPage() {
 
 
                         </div>
-
+                        
                     </div>
+                    <div className="display: hidden sm:flex items-center gap-2">
+                                    <ThemeToggle />
+                                </div>
 
 
                 </motion.div>

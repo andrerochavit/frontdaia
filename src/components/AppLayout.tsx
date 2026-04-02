@@ -3,29 +3,17 @@ import Footer from "./Footer";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const location = useLocation();
     const { user } = useAuth();
     const isChat = location.pathname.startsWith("/chat");
 
-    const [hasDisc, setHasDisc] = useState(false);
-
-    useEffect(() => {
-        if (user) {
-            const cached = localStorage.getItem(`disc_result_${user.id}`);
-            setHasDisc(!!cached);
-        } else {
-            setHasDisc(false);
-        }
-    }, [user, location.pathname]);
-
     // Internal pages that should have the sidebar frame
     const isInternalPage = ["/network", "/mvp", "/profile", "/disc", "/contato"].some(path => location.pathname.startsWith(path));
     
-    // Hide sidebar on /disc if the user hasn't completed the test yet
-    const hideSidebarForFirstDisc = location.pathname === "/disc" && !hasDisc;
+    // DiscGuard now handles DISC checking via Supabase (works across devices)
+    const hideSidebarForFirstDisc = location.pathname === "/disc";
 
     // For chat we have our own SidebarProvider inside ChatPage to give it full layout ownership
     if (isInternalPage && !isChat) {

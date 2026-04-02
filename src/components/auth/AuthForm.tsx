@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageSquare, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { getAppUrl } from "@/lib/utils";
 
 interface AuthFormProps {
   onAuthSuccess: () => void;
@@ -30,10 +31,16 @@ export default function AuthForm({ onAuthSuccess }: AuthFormProps) {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/` },
+        options: { emailRedirectTo: `${getAppUrl()}/` },
       });
       if (error) {
-        toast({ title: "Erro ao registrar", description: error.message, variant: "destructive" });
+        // Detect duplicate email
+        const isDuplicate = error.message?.toLowerCase().includes('already registered') || 
+                           error.message?.toLowerCase().includes('user_already_exists');
+        const message = isDuplicate 
+          ? "Este email já está cadastrado. Faça login ou use outro email."
+          : error.message;
+        toast({ title: isDuplicate ? "Email já em uso" : "Erro ao registrar", description: message, variant: "destructive" });
       } else {
         toast({ title: "Verifique seu email", description: "Enviamos um link de confirmação." });
       }
@@ -74,7 +81,7 @@ export default function AuthForm({ onAuthSuccess }: AuthFormProps) {
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${getAppUrl()}/reset-password`,
       });
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });

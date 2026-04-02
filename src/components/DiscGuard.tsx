@@ -2,11 +2,12 @@
  * DiscGuard — wraps protected routes and redirects to /disc if the user
  * hasn't completed the DISC assessment yet.
  *
- * Must be placed INSIDE AuthGuard (requires user to be authenticated).
+ * Checks Supabase disc_results table (source of truth, works across devices)
  */
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DiscGuard({ children }: { children: React.ReactNode }) {
@@ -15,20 +16,38 @@ export default function DiscGuard({ children }: { children: React.ReactNode }) {
     const [hasDisc, setHasDisc] = useState(false);
 
     useEffect(() => {
-        if (!user) return;
-
-        // Check localStorage first — fast path
-        const cached = localStorage.getItem(`disc_result_${user.id}`);
-        if (cached) {
-            setHasDisc(true);
+        if (!user) {
+            setHasDisc(false);
             setChecking(false);
             return;
         }
 
-        // No local cache — confirm user is on /disc already or hasn't done it
-        setHasDisc(false);
-        setChecking(false);
+        // Check Supabase database — source of truth
+        checkDiscCompletion();
     }, [user]);
+
+    const checkDiscCompletion = async () => {
+        if (!user) return;
+        try {
+            const { data, error } = await supabase
+                .from("disc_results")
+                .select("id")
+                .eq("user_id", user.id)
+                .maybeSingle();
+
+            if (error) {
+                console.error("Error checking DISC status:", error);
+                setHasDisc(false);
+            } else {
+                setHasDisc(!!data);
+            }
+        } catch (err) {
+            console.error("Error:", err);
+            setHasDisc(false);
+        } finally {
+            setChecking(false);
+        }
+    };
 
     if (checking) {
         return (

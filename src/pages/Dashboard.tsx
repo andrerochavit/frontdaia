@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Navigation, Target, Users, TrendingUp, MessageSquare, LogOut, Brain, Network, Sparkles, Rocket, ClipboardList } from "lucide-react";
+import { Navigation, Target, Users, TrendingUp, MessageSquare, LogOut, Brain, Network, Sparkles, Rocket, ClipboardList, UserCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -223,8 +223,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen page-gradient relative overflow-hidden">
       {/* Decorative orbs */}
-      <div className="glow-orb w-72 h-72 bg-blue-300 -top-52 -right-16" />
-      <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16" />
+      <div className="glow-orb w-72 h-72 bg-indigo-600 -top-52 -right-16" />
+      <div className="glow-orb w-72 h-72 bg-indigo-600 bottom-0 -left-16" />
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
         {/* Header */}
@@ -293,7 +293,7 @@ export default function Dashboard() {
             className="group glass-card rounded-xl p-4 text-center hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border-0 flex flex-col items-center justify-center"
           >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-sm mb-2">
-              <Network className="h-5 w-5 text-white" />
+              <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">Rede de Contatos</h3>
             <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">

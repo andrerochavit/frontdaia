@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { Footer } from "@/components/Footer";
 
+import { useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
+
+
 // ─── Principles data for flip cards ───────────────────────────────────────────
 const principles = [
   {
@@ -141,6 +145,22 @@ export default function LandingPage() {
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
+
+  const ref = useRef(null);
+
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start center", "end center"],
+  });
+
+  // Chat Genérico perde destaque
+  const chatOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0.3]);
+  const chatScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.95]);
+
+  // Effie ganha destaque
+  const effieOpacity = useTransform(scrollYProgress, [0, 0.5], [0.4, 1]);
+  const effieScale = useTransform(scrollYProgress, [0, 0.5], [0.95, 1.05]);
+
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">
@@ -289,7 +309,9 @@ export default function LandingPage() {
                   >
                     <div className="bg-slate-50 dark:bg-[#1a2235] border border-border/50 dark:border-white/5 p-4 rounded-2xl rounded-tl-sm text-sm leading-relaxed shadow-lg">
                       <div className="flex items-start gap-2">
-                        <span className="shrink-0 mt-0.5">🤖</span>
+                        <span className="shrink-0 mt-0.5"><div className="w-5 h-5 rounded-md btn-gradient flex items-center justify-center">
+                          <MessageSquare className="w-3 h-3 text-white" />
+                        </div></span>
                         <p className="text-muted-foreground dark:text-slate-300">
                           Entendi! Vou gerar um MVP inicial para um app de organização voltado para estudantes. Aqui estão as primeiras definições para o seu projeto:
                         </p>
@@ -528,135 +550,100 @@ export default function LandingPage() {
           </motion.div>
         </section>
 
-        {/* Comparison Slider Section */}
-        <section className="py-24 relative">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
-              <span className="text-foreground block mb-2">Por que <span className="text-primary">Effectuation</span> e não</span>
-              <span className="text-muted-foreground font-medium">Planejamento Tradicional?</span>
-            </h2>
-            <div className="relative max-w-5xl mx-auto">
-              <div className="grid md:grid-cols-2 gap-12">
-                <motion.div
-                  style={{ opacity: 1 - sliderValue / 100 }}
-                  className="text-center glass-card p-8 rounded-3xl"
-                >
-                  <div className="mb-6">{comparisonData.traditional.icon}</div>
-                  <h3 className="text-xl font-bold mb-6">{comparisonData.traditional.title}</h3>
-                  <ul className="text-left space-y-4">
-                    {comparisonData.traditional.points.map((point, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <ChevronLeft className="text-muted-foreground w-5 h-5 shrink-0 mt-0.5" />
-                        <span className="text-muted-foreground">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
 
-                <motion.div
-                  style={{ opacity: sliderValue / 100 }}
-                  className="text-center glass-card p-8 rounded-3xl border-primary/20 shadow-lg shadow-primary/5"
-                >
-                  <div className="mb-6">{comparisonData.effectuation.icon}</div>
-                  <h3 className="text-xl font-bold mb-6 text-foreground">{comparisonData.effectuation.title}</h3>
-                  <ul className="text-left space-y-4">
-                    {comparisonData.effectuation.points.map((point, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <ChevronRight className="text-primary w-5 h-5 shrink-0 mt-0.5" />
-                        <span className="text-foreground font-medium">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-              </div>
 
-              <div className="mt-12 px-2 sm:px-6">
-                <Slider
-                  value={[sliderValue]}
-                  onValueChange={([value]) => setSliderValue(value)}
-                  className="w-full"
-                />
-                <div className="grid grid-cols-3 items-center text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-widest mt-4 gap-2">
-                  <span className="text-left leading-tight">Tradicional</span>
-                  <span className="text-center leading-tight">Arraste <span className="hidden sm:inline">e compare</span></span>
-                  <span className="text-right text-primary leading-tight">Effectuation</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Section: Comparison Cards ─────────────────────────── */}
-        <section id="comparison" className="py-20 px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center max-w-5xl mx-auto"
-          >
+        <section id="comparison" ref={ref} className="py-32 px-4">
+          <div className="text-center max-w-5xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-extrabold mb-4 px-2 leading-snug">
-              <span className="text-muted-foreground">ChatGPT responde perguntas.</span>
+              <span className="text-muted-foreground">
+                Chats Genéricos respondem perguntas.
+              </span>
               <br />
-              <span className="text-foreground">Effie constrói negócios com você.</span>
+              <span className="text-foreground">
+                Effie constrói negócios com você.
+              </span>
             </h2>
-            <p className="text-base text-muted-foreground mb-12">
-              Por que apostar na especialização e método?
+
+            <p className="text-base text-muted-foreground mb-16">
+              Role para ver a diferença
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {/* ChatGPT card */}
-              <div className="glass-card rounded-3xl p-8 text-left border-border/50">
+
+              {/* Chat Genérico */}
+              <motion.div
+                style={{ opacity: chatOpacity, scale: chatScale }}
+                className="glass-card rounded-3xl p-8 text-left border-border/50"
+              >
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
                     <MessageSquare className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <span className="font-bold text-lg text-foreground">ChatGPT Genérico</span>
+                  <span className="font-bold text-lg text-foreground">
+                    Chats Genéricos
+                  </span>
                 </div>
+
                 <ul className="space-y-4">
                   {chatgptItems.map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 text-sm text-muted-foreground"
+                    >
                       <X className="h-5 w-5 text-destructive shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
-              </div>
+              </motion.div>
 
-              {/* Effie card — highlighted */}
-              <div className="glass-card rounded-3xl p-8 text-left ring-2 ring-primary/50 shadow-xl shadow-primary/10 relative overflow-hidden">
+              {/* Effie */}
+              <motion.div
+                style={{ opacity: effieOpacity, scale: effieScale }}
+                className="glass-card rounded-3xl p-8 text-left ring-2 ring-primary/50 shadow-xl shadow-primary/10 relative overflow-hidden"
+              >
                 <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+
                 <div className="relative">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl btn-gradient flex items-center justify-center shadow-md">
                         <Bot className="h-6 w-6 text-white" />
                       </div>
-                      <div>
-                        <span className="font-bold text-lg text-foreground">Effie</span>
-                      </div>
+                      <span className="font-bold text-lg text-foreground">
+                        Effie
+                      </span>
                     </div>
+
                     <span className="text-[10px] bg-primary/10 text-primary px-3 py-1 rounded-full font-bold uppercase tracking-wider">
                       Recomendado
                     </span>
                   </div>
+
                   <ul className="space-y-4">
                     {effieItems.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-foreground font-medium">
+                      <li
+                        key={i}
+                        className="flex items-start gap-3 text-sm text-foreground font-medium"
+                      >
                         <Check className="h-5 w-5 text-primary shrink-0" />
                         {item}
                       </li>
                     ))}
                   </ul>
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </motion.div>
+          </div>
         </section>
 
-        {/* ── Final CTA ────────────────────────────── */}
+
+
+        {/* ─-------------─ Final CTA ────────────────────────────── */}
         <section className="py-24 px-4 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-3xl opacity-50 dark:opacity-20 pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] 
+          
+          dark:opacity-20 pointer-events-none" />
 
           <div className="container mx-auto max-w-3xl text-center relative z-10 glass-card rounded-3xl p-12 border-primary/20 shadow-2xl">
             <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6">
