@@ -142,11 +142,11 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [sliderValue, setSliderValue] = useState(50);
 
-const scrollToSection = (id: string) => {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-};
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
 
-const ref = useRef(null);
+  const ref = useRef(null);
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -550,98 +550,100 @@ const ref = useRef(null);
           </motion.div>
         </section>
 
-        
 
-    <section id="comparison" ref={ref} className="py-32 px-4">
-      <div className="text-center max-w-5xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-extrabold mb-4 px-2 leading-snug">
-          <span className="text-muted-foreground">
-            Chats Genéricos respondem perguntas.
-          </span>
-          <br />
-          <span className="text-foreground">
-            Effie constrói negócios com você.
-          </span>
-        </h2>
 
-        <p className="text-base text-muted-foreground mb-16">
-          Role para ver a diferença
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          
-          {/* Chat Genérico */}
-          <motion.div
-            style={{ opacity: chatOpacity, scale: chatScale }}
-            className="glass-card rounded-3xl p-8 text-left border-border/50"
-          >
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
-                <MessageSquare className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <span className="font-bold text-lg text-foreground">
-                Chats Genéricos
+        <section id="comparison" ref={ref} className="py-32 px-4">
+          <div className="text-center max-w-5xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-extrabold mb-4 px-2 leading-snug">
+              <span className="text-muted-foreground">
+                Chats Genéricos respondem perguntas.
               </span>
-            </div>
+              <br />
+              <span className="text-foreground">
+                Effie constrói negócios com você.
+              </span>
+            </h2>
 
-            <ul className="space-y-4">
-              {chatgptItems.map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 text-sm text-muted-foreground"
-                >
-                  <X className="h-5 w-5 text-destructive shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
+            <p className="text-base text-muted-foreground mb-16">
+              Role para ver a diferença
+            </p>
 
-          {/* Effie */}
-          <motion.div
-            style={{ opacity: effieOpacity, scale: effieScale }}
-            className="glass-card rounded-3xl p-8 text-left ring-2 ring-primary/50 shadow-xl shadow-primary/10 relative overflow-hidden"
-          >
-            <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
 
-            <div className="relative">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl btn-gradient flex items-center justify-center shadow-md">
-                    <Bot className="h-6 w-6 text-white" />
+              {/* Chat Genérico */}
+              <motion.div
+                style={{ opacity: chatOpacity, scale: chatScale }}
+                className="glass-card rounded-3xl p-8 text-left border-border/50"
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center">
+                    <MessageSquare className="h-6 w-6 text-muted-foreground" />
                   </div>
                   <span className="font-bold text-lg text-foreground">
-                    Effie
+                    Chats Genéricos
                   </span>
                 </div>
 
-                <span className="text-[10px] bg-primary/10 text-primary px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                  Recomendado
-                </span>
-              </div>
+                <ul className="space-y-4">
+                  {chatgptItems.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-3 text-sm text-muted-foreground"
+                    >
+                      <X className="h-5 w-5 text-destructive shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
 
-              <ul className="space-y-4">
-                {effieItems.map((item, i) => (
-                  <li
-                    key={i}
-                    className="flex items-start gap-3 text-sm text-foreground font-medium"
-                  >
-                    <Check className="h-5 w-5 text-primary shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+              {/* Effie */}
+              <motion.div
+                style={{ opacity: effieOpacity, scale: effieScale }}
+                className="glass-card rounded-3xl p-8 text-left ring-2 ring-primary/50 shadow-xl shadow-primary/10 relative overflow-hidden"
+              >
+                <div className="absolute -top-12 -right-12 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl btn-gradient flex items-center justify-center shadow-md">
+                        <Bot className="h-6 w-6 text-white" />
+                      </div>
+                      <span className="font-bold text-lg text-foreground">
+                        Effie
+                      </span>
+                    </div>
+
+                    <span className="text-[10px] bg-primary/10 text-primary px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                      Recomendado
+                    </span>
+                  </div>
+
+                  <ul className="space-y-4">
+                    {effieItems.map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-3 text-sm text-foreground font-medium"
+                      >
+                        <Check className="h-5 w-5 text-primary shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
             </div>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  ;
+          </div>
+        </section>
 
 
-        {/* ── Final CTA ────────────────────────────── */}
+
+        {/* ─-------------─ Final CTA ────────────────────────────── */}
         <section className="py-24 px-4 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 rounded-full blur-3xl opacity-50 dark:opacity-20 pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] 
+          
+          dark:opacity-20 pointer-events-none" />
 
           <div className="container mx-auto max-w-3xl text-center relative z-10 glass-card rounded-3xl p-12 border-primary/20 shadow-2xl">
             <h2 className="text-4xl md:text-5xl font-extrabold text-foreground mb-6">
