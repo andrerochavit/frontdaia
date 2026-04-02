@@ -122,7 +122,7 @@ export default function DiscProfilePage() {
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
             <div className="glow-orb w-96 h-96 bg-orange-300 -top-32 -right-16" />
-            <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16" />
+            <div className="glow-orb w-72 h-72 bg-orange-300 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
                 {/* Header */}

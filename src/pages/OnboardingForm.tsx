@@ -105,7 +105,13 @@ export default function OnboardingForm() {
       );
 
       if (error) {
-        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        // Detect duplicate email
+        const isDuplicate = error.message?.toLowerCase().includes('already registered') || 
+                             error.message?.toLowerCase().includes('user_already_exists');
+        const message = isDuplicate 
+          ? "Este email já está cadastrado. Faça login ou use outro email."
+          : error.message;
+        toast({ title: isDuplicate ? "Email já em uso" : "Erro ao registrar", description: message, variant: "destructive" });
       } else {
         toast({ title: "Perfil completo! 🎉", description: "Bem-vindo ao Effie!" });
         navigate("/dashboard");
@@ -255,4 +261,83 @@ export default function OnboardingForm() {
       </div>
     </div>
   );
+}
+
+/**
+ * Get the correct application URL for auth redirects
+ * Checks VITE_APP_URL env first, falls back to window.location.origin
+ */
+export function getAppUrl(): string {
+  const env = import.meta.env.VITE_APP_URL?.trim();
+  if (env) {
+    return env.replace(/\/+$/, ""); // Remove trailing slashes
+  }
+  return window.location.origin;
+}
+
+export function redirectTo(url: string): string {
+  return `${getAppUrl()}/${url}`;
+}
+
+/**
+ * DiscGuard — wraps protected routes and redirects to /disc if the user
+ * hasn't completed the DISC assessment yet.
+ *
+ * Checks Supabase disc_results table (source of truth)
+ */
+import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export default function DiscGuard({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+    const [checking, setChecking] = useState(true);
+    const [hasDisc, setHasDisc] = useState(false);
+
+    useEffect(() => {
+        if (!user) {
+            setHasDisc(false);
+            setChecking(false);
+            return;
+        }
+
+        // Check if user has already completed DISC in Supabase
+        checkExistingDisc();
+    }, [user, location.pathname]);
+
+    const checkExistingDisc = async () => {
+        if (!user) return;
+        try {
+            const { data } = await supabase
+                .from("disc_results")
+                .select("id")
+                .eq("user_id", user.id)
+                .maybeSingle();
+            
+            setIsFirstTime(!data);
+            if (data) setShowIntro(false);
+        } catch (err) {
+            console.error("Error checking existing DISC:", err);
+            setIsFirstTime(true);
+        }
+    };
+
+    if (checking) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="space-y-4 w-full max-w-md px-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            </div>
+        );
+    }
+
+    if (!hasDisc) {
+        return <Navigate to="/disc" replace />;
+    }
+
+    return <>{children}</>;
 }

@@ -428,8 +428,8 @@ export default function MvpPage() {
 
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
-            <div className="glow-orb w-96 h-96 bg-purple-400 -top-32 -right-16" />
-            <div className="glow-orb w-72 h-72 bg-blue-300 bottom-0 -left-16" />
+            <div className="glow-orb w-96 h-96 bg-purple-800 -top-32 -right-16" />
+            <div className="glow-orb w-72 h-72 bg-purple-800 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-4xl">
                 {/* Header */}
@@ -441,9 +441,19 @@ export default function MvpPage() {
                     <div className="flex items-center gap-3">
                         <NavMenuButton />
                         <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-                                Ideia
-                            </h1>
+                            <div className="flex items-center gap-3 mb-3">  
+  
+{/* Ícone foguete */}  
+<Rocket className="h-8 w-8 text-purple-500" />
+
+  
+{/* Título com gradiente */}  
+<h1 className="text-2xl md:text-3xl bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent font-bold text-foreground flex items-center gap-2">
+
+Ideia
+
+</h1>
+</div>
                             {mvpData?.pitch && (
                                 <p className="text-foreground/80 text-sm mt-0.5 max-w-xl leading-snug">
                                     {mvpData.pitch}

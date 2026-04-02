@@ -197,10 +197,27 @@ export default function DiscFormPage() {
 
     useEffect(() => {
         if (!user) return;
-        const cached = localStorage.getItem(`disc_result_${user.id}`);
-        setIsFirstTime(!cached);
-        if (cached) setShowIntro(false);
+        
+        // Check if user has already completed DISC in Supabase
+        checkExistingDisc();
     }, [user]);
+
+    const checkExistingDisc = async () => {
+        if (!user) return;
+        try {
+            const { data } = await supabase
+                .from("disc_results")
+                .select("id")
+                .eq("user_id", user.id)
+                .maybeSingle();
+            
+            setIsFirstTime(!data);
+            if (data) setShowIntro(false);
+        } catch (err) {
+            console.error("Error checking existing DISC:", err);
+            setIsFirstTime(true);
+        }
+    };
 
     // Auto-redirect to home after DISC completion (first-time or retake)
     useEffect(() => {
@@ -238,7 +255,7 @@ export default function DiscFormPage() {
         if (user) {
             setSaving(true);
             try {
-                await supabase.from("disc_results" as any).upsert(
+                const { error } = await supabase.from("disc_results").upsert(
                     {
                         user_id: user.id,
                         d_score: counts.D,
@@ -248,22 +265,18 @@ export default function DiscFormPage() {
                         dominant_profile: dominant,
                         answers: finalAnswers,
                         updated_at: new Date().toISOString(),
-                    },
-                    { onConflict: "user_id" }
+                    }
                 );
-            } catch {
-                // Silently continue — table might not exist yet
-                console.warn("Could not save DISC result to DB");
+
+                if (error) {
+                    console.error("Error saving DISC result:", error);
+                }
+            } catch (err) {
+                console.error("Error saving DISC result to DB:", err);
             } finally {
                 setSaving(false);
             }
         }
-
-        // Persist locally
-        localStorage.setItem(
-            `disc_result_${user?.id}`,
-            JSON.stringify({ counts, dominant, answers: finalAnswers })
-        );
 
         // Toast feedback
         if (isFirstTime) {
@@ -285,7 +298,7 @@ export default function DiscFormPage() {
         return (
             <div className="min-h-screen page-gradient relative overflow-hidden">
                 <div className="glow-orb w-96 h-96 bg-orange-300 -top-32 -right-16" />
-                <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -left-16" />
+                <div className="glow-orb w-72 h-72 bg-orange-300 bottom-0 -left-16" />
 
                 <div className="relative z-10 container mx-auto px-4 py-8 max-w-2xl">
                     <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}>
@@ -367,7 +380,7 @@ export default function DiscFormPage() {
         return (
             <div className="min-h-screen page-gradient relative overflow-hidden flex flex-col items-center justify-center px-4 py-8">
                 <div className="glow-orb w-80 h-80 bg-orange-300 -top-24 -left-20" />
-                <div className="glow-orb w-72 h-72 bg-indigo-300 bottom-0 -right-16" />
+                <div className="glow-orb w-72 h-72 bg-orange-300 bottom-0 -right-16" />
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
