@@ -454,11 +454,6 @@ Ideia
 
 </h1>
 </div>
-                            {mvpData?.pitch && (
-                                <p className="text-foreground/80 text-sm mt-0.5 max-w-xl leading-snug">
-                                    {mvpData.pitch}
-                                </p>
-                            )}
                             {(mvpData?.generated_at || mvpData?.conversations_count) && (
                                 <p className="text-muted-foreground text-xs mt-1 flex items-center gap-2">
                                     {mvpData.conversations_count !== undefined && (
@@ -532,6 +527,24 @@ Ideia
                     </motion.div>
                 ) : (
                     <div className="space-y-4" ref={mvpRef}>
+                        {/* Pitch — full width */}
+                        {hasContent(mvpData.pitch) && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0 }}
+                                className="rounded-2xl p-5 bg-gradient-to-br from-purple-50 to-indigo-100/50 dark:from-purple-900/50 dark:to-indigo-700/30 border border-purple-200 dark:border-purple-500/20"
+                            >
+                                <div className="flex items-center gap-2.5 mb-3">
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
+                                        <Lightbulb className="h-5 w-5" />
+                                    </div>
+                                    <h1 className="font-semibold text-foreground">Ideia</h1>
+                                </div>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{mvpData.pitch}</p>
+                            </motion.div>
+                        )}
+
                         {/* 3×2 grid of pairs */}
                         <div className="grid md:grid-cols-2 gap-4">
                             {pairs.map((card, index) => (

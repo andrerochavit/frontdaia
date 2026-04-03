@@ -502,7 +502,7 @@ export default function LandingPage() {
             </p>
 
             <h2 className="text-3xl md:text-5xl font-extrabold text-foreground mb-4">
-              Os 5 Princípios da Effectuation
+              Os 5 Princípios do Effectuation
             </h2>
             <p className="text-base text-muted-foreground mb-12 max-w-2xl mx-auto">
               O método estudado em empreendedores de sucesso para criar negócios no mundo real, mesmo com recursos limitados na fase inicial. Passe o mouse para ver os exemplos práticos.
