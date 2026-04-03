@@ -124,6 +124,142 @@ const isSupportedContextFile = (ext?: string | null) => {
     return SUPPORTED_CONTEXT_EXTENSIONS.includes(ext);
 };
 
+const sanitizeCsvCell = (value?: string) => {
+    if (!value) return "";
+    let output = value.replace(/\r/g, "").replace(/^\ufeff/, "").trim();
+    if (output.startsWith('"') && output.endsWith('"')) {
+        output = output.slice(1, -1);
+    }
+    return output.replace(/""/g, '"').trim();
+};
+
+const normalizeCsvHeader = (value: string) =>
+    sanitizeCsvCell(value)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const parseCsvRow = (line: string, separator: string) => {
+    const cleanLine = line.replace(/\r/g, "");
+    const result: string[] = [];
+    let current = "";
+    let insideQuotes = false;
+
+    for (let i = 0; i < cleanLine.length; i++) {
+        const char = cleanLine[i];
+        if (char === '"') {
+            if (insideQuotes && cleanLine[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                insideQuotes = !insideQuotes;
+            }
+        } else if (char === separator && !insideQuotes) {
+            result.push(current);
+            current = "";
+        } else {
+            current += char;
+        }
+    }
+
+    result.push(current);
+    return result;
+};
+
+const CSV_SEPARATORS: ReadonlyArray<string> = [",", ";"];
+
+const detectCsvSeparator = (rows: string[]) => {
+    let bestSeparator = ",";
+    let bestScore = -Infinity;
+
+    for (const sep of CSV_SEPARATORS) {
+        let score = 0;
+        for (const row of rows.slice(0, 20)) {
+            if (!row.trim()) continue;
+            const columns = parseCsvRow(row, sep);
+            if (columns.length > 1) {
+                score += columns.length;
+            }
+        }
+
+        if (score > bestScore) {
+            bestSeparator = sep;
+            bestScore = score;
+        }
+    }
+
+    return bestSeparator;
+};
+
+const matchesFirstNameHeader = (header: string) => (
+    header.includes("first name") ||
+    header.includes("firstname") ||
+    header.includes("given name") ||
+    header.includes("givennames") ||
+    header.includes("primeiro nome") ||
+    header.includes("nome proprio")
+);
+
+const matchesLastNameHeader = (header: string) => (
+    header.includes("last name") ||
+    header.includes("lastname") ||
+    header.includes("surname") ||
+    header.includes("family name") ||
+    header.includes("sobrenome") ||
+    header.includes("ultimo nome")
+);
+
+const matchesGeneralNameHeader = (header: string) => {
+    if (matchesFirstNameHeader(header) || matchesLastNameHeader(header)) return false;
+    return (
+        header === "name" ||
+        header === "nome" ||
+        header === "contact name" ||
+        header === "nome do contato" ||
+        header.includes("full name") ||
+        header.includes("nome completo")
+    );
+};
+
+const matchesCompanyHeader = (header: string) => (
+    header.includes("company") ||
+    header.includes("empresa") ||
+    header.includes("organization") ||
+    header.includes("organisation") ||
+    header.includes("companhia") ||
+    header.includes("business") ||
+    header.includes("org name")
+);
+
+const matchesRoleHeader = (header: string) => (
+    header.includes("cargo") ||
+    header.includes("role") ||
+    header.includes("title") ||
+    header.includes("position") ||
+    header.includes("posicao") ||
+    header.includes("ocupacao") ||
+    header.includes("funcao") ||
+    header.includes("job") ||
+    header.includes("headline")
+);
+
+const findHeaderInfo = (rows: string[], separator: string) => {
+    for (let index = 0; index < rows.length; index++) {
+        const row = rows[index];
+        if (!row.trim()) continue;
+        const normalizedHeaders = parseCsvRow(row, separator).map(normalizeCsvHeader);
+        const hasNameColumn =
+            normalizedHeaders.some(matchesGeneralNameHeader) || normalizedHeaders.some(matchesFirstNameHeader);
+        if (hasNameColumn) {
+            return { index, normalizedHeaders };
+        }
+    }
+    return null;
+};
+
 export default function NetworkPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -262,55 +398,67 @@ export default function NetworkPage() {
                 throw new Error(uploadResult.error || "Falha ao enviar o CSV para o Supabase");
             }
 
-            const text = await file.text();
-            const rows = text.split('\n');
-            if (rows.length < 2) throw new Error("CSV vazio ou sem cabeçalho válido");
+            const rawText = await file.text();
+            const cleanedLines = rawText
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .split('\n')
+                .map((line) => line.trim());
 
-            // Separator detection
-            const separator = rows[0].includes(';') ? ';' : ',';
-            const headers = rows[0].split(separator).map(h => h.trim().toLowerCase());
-            const nameIdx = headers.findIndex(h => h.includes('nome') || h.includes('name'));
-            const companyIdx = headers.findIndex(h => h.includes('empresa') || h.includes('company'));
-            const roleIdx = headers.findIndex(h =>
-                h.includes('cargo') || h.includes('role') || h.includes('title') ||
-                h.includes('position') || h.includes('posicao') || h.includes('posição') ||
-                h.includes('ocupacao') || h.includes('ocupação') || h.includes('job')
-            );
+            const trimmedLines = cleanedLines.filter((line) => line);
+            if (trimmedLines.length === 0) throw new Error("CSV vazio ou sem conteúdo válido");
 
-            if (nameIdx === -1) throw new Error("Coluna 'Nome' ou 'Name' não encontrada no arquivo CSV.");
+            const separator = detectCsvSeparator(trimmedLines);
+            const headerInfo = findHeaderInfo(trimmedLines, separator);
+
+            if (!headerInfo) {
+                throw new Error("Não foi possível identificar colunas de nome no CSV. Use o padrão do LinkedIn.");
+            }
+
+            const { index: headerIndex, normalizedHeaders } = headerInfo;
+
+            const firstNameIdx = normalizedHeaders.findIndex(matchesFirstNameHeader);
+            const lastNameIdx = normalizedHeaders.findIndex(matchesLastNameHeader);
+            let nameIdx = normalizedHeaders.findIndex(matchesGeneralNameHeader);
+
+            if (nameIdx === -1 && firstNameIdx === -1 && lastNameIdx === -1) {
+                throw new Error("Colunas de nome não foram identificadas. Inclua 'First Name' / 'Last Name' ou 'Name'.");
+            }
+
+            if (nameIdx === -1) {
+                // We'll synthesize a name from first/last later
+                nameIdx = -1;
+            }
+
+            const companyIdx = normalizedHeaders.findIndex(matchesCompanyHeader);
+            const roleIdx = normalizedHeaders.findIndex(matchesRoleHeader);
 
             const newContacts = [];
 
-            for (let i = 1; i < rows.length; i++) {
-                const rowText = rows[i].trim();
+            for (let i = headerIndex + 1; i < trimmedLines.length; i++) {
+                const rowText = trimmedLines[i];
                 if (!rowText) continue;
 
-                const cols = rowText.split(separator);
-                if (cols.length < 2) continue;
+                const cols = parseCsvRow(rowText, separator);
+                const firstName = firstNameIdx !== -1 ? sanitizeCsvCell(cols[firstNameIdx]) : "";
+                const lastName = lastNameIdx !== -1 ? sanitizeCsvCell(cols[lastNameIdx]) : "";
+                const fullName = nameIdx !== -1 ? sanitizeCsvCell(cols[nameIdx]) : [firstName, lastName].filter(Boolean).join(" ").trim();
+                const company = companyIdx !== -1 ? sanitizeCsvCell(cols[companyIdx]) : "";
+                const jobRole = roleIdx !== -1 ? sanitizeCsvCell(cols[roleIdx]) : "";
 
-                const fullName = cols[nameIdx]?.trim() || '';
-                const company = companyIdx !== -1 ? cols[companyIdx]?.trim() : '';
-                const jobRole = roleIdx !== -1 ? cols[roleIdx]?.trim() : '';
+                if (!fullName) continue;
 
-                if (fullName) {
-                    // Parse first and last name intelligently
-                    const nameParts = fullName.trim().split(/\s+/);
-                    const firstName = nameParts[0] || '';
-                    const lastName = nameParts.slice(1).join(' ') || '';
-                    
-                    newContacts.push({
-                        user_id: user.id,
-                        name: fullName, // Keep full name in the field
-                        // Store parsed names in file_json for future use
-                        file_json: {
-                            first_name: firstName,
-                            last_name: lastName,
-                        },
-                        role: jobRole || "outro",
-                        extracted_experience: [jobRole, company].filter(Boolean).join(' na '),
-                        possible_value: "",
-                    });
-                }
+                const extractedExpParts = [];
+                if (jobRole) extractedExpParts.push(jobRole);
+                if (company) extractedExpParts.push(company);
+
+                newContacts.push({
+                    user_id: user.id,
+                    name: fullName,
+                    role: jobRole || "outro",
+                    extracted_experience: extractedExpParts.join(" na "),
+                    possible_value: "",
+                });
             }
 
             if (newContacts.length > 0) {
@@ -495,8 +643,8 @@ export default function NetworkPage() {
     };
 
     const resolveContactIconId = (contact: ContactData) => {
-        const storedIcon = (contact.file_json as any)?.icon_id;
-        if (storedIcon && typeof storedIcon === 'string' && ICON_IDS.includes(storedIcon)) return storedIcon;
+        const storedIcon = contact.file_json?.icon_id;
+        if (storedIcon && ICON_IDS.includes(storedIcon)) return storedIcon;
         if (ICON_IDS.includes(contact.possible_value)) return contact.possible_value;
         return "user";
     };
@@ -509,13 +657,13 @@ export default function NetworkPage() {
     return (
         <div className="min-h-screen page-gradient relative overflow-hidden">
             {/* Decorative orbs */}
-            <div className="glow-orb w-96 h-96 bg-emerald-800 dark:bg-emerald-800 -top-32 -right-16" />
+            <div className="glow-orb w-96 h-96 bg-emerald-300 dark:bg-emerald-800 -top-32 -right-16" />
             <div className="glow-orb w-72 h-72 bg-teal-300 dark:bg-teal-800 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
                 {/* Header */}
                 <motion.div
-                    initial={{ opacity: 1, y: -16 }}
+                    initial={{ opacity: 0, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
                 >
@@ -525,13 +673,12 @@ export default function NetworkPage() {
                         <div className="w-full">
                             <div className="flex items-center justify-between">
 
-                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-green-500 to-green-400 bg-clip-text text-transparent">
-                                    
-                                        <UserCircle className="h-8 w-8 text-green-500" />
-                                    
+                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
+                                        <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                                    </div>
                                     Perfil
                                 </h1>
-                                
 
                                 {/* Mobile only */}
                                 <div className="sm:hidden">
@@ -546,11 +693,8 @@ export default function NetworkPage() {
 
 
                         </div>
-                        
+
                     </div>
-                    <div className="display: hidden sm:flex items-center gap-2">
-                                    <ThemeToggle />
-                                </div>
 
 
                 </motion.div>
