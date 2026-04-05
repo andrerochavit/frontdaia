@@ -28,19 +28,28 @@ export default function AuthForm({ onAuthSuccess }: AuthFormProps) {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: `${getAppUrl()}/` },
       });
       if (error) {
-        // Detect duplicate email
-        const isDuplicate = error.message?.toLowerCase().includes('already registered') || 
-                           error.message?.toLowerCase().includes('user_already_exists');
-        const message = isDuplicate 
+        // Supabase returns error when email enumeration protection is OFF
+        const isDuplicate =
+          error.message?.toLowerCase().includes('already registered') ||
+          error.message?.toLowerCase().includes('user_already_exists');
+        const message = isDuplicate
           ? "Este email já está cadastrado. Faça login ou use outro email."
           : error.message;
         toast({ title: isDuplicate ? "Email já em uso" : "Erro ao registrar", description: message, variant: "destructive" });
+      } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+        // Supabase returns success silently when email enumeration protection is ON
+        // but the user already exists — identities will be an empty array
+        toast({
+          title: "Email já em uso",
+          description: "Este email já está cadastrado. Faça login ou use outro email.",
+          variant: "destructive",
+        });
       } else {
         toast({ title: "Verifique seu email", description: "Enviamos um link de confirmação." });
       }

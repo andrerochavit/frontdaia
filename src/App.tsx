@@ -27,12 +27,12 @@ const queryClient = new QueryClient();
 
 const AuthRoute = () => {
   const navigate = useNavigate();
-  return <AuthForm onAuthSuccess={() => navigate("/dashboard") } />;
+  return <AuthForm onAuthSuccess={() => navigate("/dashboard")} />;
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="effectuation-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="effectuation-theme">
       <AuthProvider>
         <TooltipProvider>
           <Toaster />

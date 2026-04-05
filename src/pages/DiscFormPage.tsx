@@ -197,7 +197,7 @@ export default function DiscFormPage() {
 
     useEffect(() => {
         if (!user) return;
-        
+
         // Check if user has already completed DISC in Supabase
         checkExistingDisc();
     }, [user]);
@@ -210,7 +210,7 @@ export default function DiscFormPage() {
                 .select("id")
                 .eq("user_id", user.id)
                 .maybeSingle();
-            
+
             setIsFirstTime(!data);
             if (data) setShowIntro(false);
         } catch (err) {
@@ -265,11 +265,18 @@ export default function DiscFormPage() {
                         dominant_profile: dominant,
                         answers: finalAnswers,
                         updated_at: new Date().toISOString(),
-                    }
+                    },
+                    { onConflict: "user_id" }
                 );
 
                 if (error) {
                     console.error("Error saving DISC result:", error);
+                } else {
+                    // Persist locally so DiscProfilePage can read instantly
+                    localStorage.setItem(
+                        `disc_result_${user.id}`,
+                        JSON.stringify({ dominant, counts })
+                    );
                 }
             } catch (err) {
                 console.error("Error saving DISC result to DB:", err);

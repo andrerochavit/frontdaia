@@ -104,6 +104,45 @@ export type Database = {
         }
         Relationships: []
       }
+      disc_results: {
+        Row: {
+          id: string
+          user_id: string
+          d_score: number
+          i_score: number
+          s_score: number
+          c_score: number
+          dominant_profile: string
+          answers: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          d_score: number
+          i_score: number
+          s_score: number
+          c_score: number
+          dominant_profile: string
+          answers?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          d_score?: number
+          i_score?: number
+          s_score?: number
+          c_score?: number
+          dominant_profile?: string
+          answers?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       network_contacts: {
         Row: {
           id: string

@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle, RefreshCw, Brain } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NavMenuButton from "@/components/NavMenuButton";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const profileDescriptions: Record<
     string,
@@ -70,22 +72,77 @@ export default function DiscProfilePage() {
     const navigate = useNavigate();
     const [dominant, setDominant] = useState<string | null>(null);
     const [scores, setScores] = useState<Record<string, number> | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!user) return;
+
+        // 1. Try localStorage first (fast path)
         const cached = localStorage.getItem(`disc_result_${user.id}`);
         if (cached) {
             try {
                 const parsed = JSON.parse(cached);
                 setDominant(parsed.dominant ?? null);
                 setScores(parsed.counts ?? null);
+                setLoading(false);
+                return;
             } catch {
-                // ignore
+                // fall through to Supabase
             }
         }
+
+        // 2. Fallback: read from Supabase (cross-device support)
+        (async () => {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const { data } = await (supabase as any)
+                    .from("disc_results")
+                    .select("dominant_profile, d_score, i_score, s_score, c_score")
+                    .eq("user_id", user.id)
+                    .maybeSingle();
+
+                if (data) {
+                    const counts = {
+                        D: data.d_score ?? 0,
+                        I: data.i_score ?? 0,
+                        S: data.s_score ?? 0,
+                        C: data.c_score ?? 0,
+                    };
+                    setDominant(data.dominant_profile ?? null);
+                    setScores(counts);
+                    // Cache locally for next visit
+                    localStorage.setItem(
+                        `disc_result_${user.id}`,
+                        JSON.stringify({ dominant: data.dominant_profile, counts })
+                    );
+                }
+            } catch (err) {
+                console.error("Error fetching DISC from Supabase:", err);
+            } finally {
+                setLoading(false);
+            }
+        })();
     }, [user]);
 
-    // If somehow there's no result, redirect to test
+    // Loading skeleton
+    if (loading) {
+        return (
+            <div className="min-h-screen page-gradient flex items-center justify-center px-4">
+                <div className="space-y-4 w-full max-w-4xl">
+                    <Skeleton className="h-10 w-64 glass-card" />
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <Skeleton className="lg:col-span-5 h-72 glass-card rounded-2xl" />
+                        <div className="lg:col-span-7 flex flex-col gap-4">
+                            <Skeleton className="h-40 glass-card rounded-2xl" />
+                            <Skeleton className="h-48 glass-card rounded-2xl" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // If no result, redirect to test
     if (!dominant) {
         return (
             <div className="min-h-screen page-gradient flex items-center justify-center px-4">
@@ -125,14 +182,31 @@ export default function DiscProfilePage() {
             <div className="glow-orb w-72 h-72 bg-orange-300 bottom-0 -left-16" />
 
             <div className="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
-                {/* Header */}
+                {/* Header — same pattern as MvpPage */}
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center justify-between mb-8"
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"
                 >
-                    <div className="flex items-center gap-2">
+                    {/* Left: nav + gradient title */}
+                    <div className="flex items-center gap-3">
                         <NavMenuButton />
+                        <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <Brain className="h-8 w-8 text-orange-500" />
+                                <h1 className="text-2xl md:text-3xl bg-gradient-to-r from-orange-500 to-rose-400 bg-clip-text text-transparent font-bold">
+                                    Perfil DISC
+                                </h1>
+                            </div>
+                            <p className="text-xs text-muted-foreground ml-11">
+                                Seu estilo de empreendedor:{" "}
+                                <span className="font-semibold text-foreground">{profile.name}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right: back + theme toggle */}
+                    <div className="flex items-center gap-2 shrink-0">
                         <Button
                             variant="outline"
                             size="sm"
@@ -141,73 +215,61 @@ export default function DiscProfilePage() {
                         >
                             <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
                         </Button>
+                        <ThemeToggle />
                     </div>
-                    <ThemeToggle />
                 </motion.div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-                    {/* Left Column */}
-                    <div className="lg:col-span-5 flex flex-col gap-4">
-                        {/* Profile card */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1 }}
-                            className="glass-card rounded-2xl p-8 text-center flex flex-col items-center justify-center"
+                <div className="flex flex-col gap-6 lg:gap-8">
+                    {/* Profile card (Full Width) */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="glass-card rounded-2xl p-8 text-center flex flex-col items-center justify-center w-full"
+                    >
+                        <div
+                            className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${profile.color} flex items-center justify-center mb-5 shadow-lg`}
                         >
-                            <div
-                                className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${profile.color} flex items-center justify-center mb-5 shadow-lg`}
+                            <span className="text-4xl">{profile.emoji}</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-foreground mb-3">
+                            Perfil:{" "}
+                            <span
+                                className={`bg-gradient-to-r ${profile.color} bg-clip-text text-transparent`}
                             >
-                                <span className="text-4xl">{profile.emoji}</span>
-                            </div>
-                            <h1 className="text-2xl font-bold text-foreground mb-3">
-                                Seu Perfil DISC: {profile.name}
-                            </h1>
-                            <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-sm">
-                                {profile.description}
-                            </p>
+                                {profile.name}
+                            </span>
+                        </h2>
+                        <p className="text-sm text-muted-foreground mb-8 leading-relaxed max-w-2xl mx-auto">
+                            {profile.description}
+                        </p>
 
-                            {/* Strengths */}
-                            <div className="flex flex-wrap gap-2 justify-center mt-auto">
-                                {profile.strengths.map((s, i) => (
-                                    <span
-                                        key={i}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                                    >
-                                        <CheckCircle className="h-3.5 w-3.5" /> {s}
-                                    </span>
-                                ))}
-                            </div>
-                        </motion.div>
+                        {/* Strengths */}
+                        <div className="flex flex-wrap gap-2 justify-center mt-auto">
+                            {profile.strengths.map((s, i) => (
+                                <span
+                                    key={i}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                                >
+                                    <CheckCircle className="h-3.5 w-3.5" /> {s}
+                                </span>
+                            ))}
+                        </div>
+                    </motion.div>
 
-                        {/* Retake button */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                            className="flex justify-center"
-                        >
-                            <Button
-                                onClick={() => navigate("/disc")}
-                                variant="outline"
-                                className="w-full glass-card border-0 bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 hover:from-orange-500 hover:via-orange-600 hover:to-orange-700 text-white rounded-xl font-semibold px-8 h-12 shadow-md hover:shadow-lg transition-all"
-                            >
-                                <RefreshCw className="h-4 w-4 mr-2" /> Refazer o Teste DISC
-                            </Button>
-                        </motion.div>
-                    </div>
-
-                    {/* Right Column */}
-                    <div className="lg:col-span-7 flex flex-col gap-6">
+                    {/* Two column grid for Distribution and Tips */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                         {/* Score bars */}
                         {scores && total > 0 && (
                             <motion.div
                                 initial={{ opacity: 0, x: 16 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.15 }}
-                                className="glass-card rounded-2xl p-6 sm:p-8"
+                                className="glass-card rounded-2xl p-6 sm:p-8 flex-1"
                             >
-                                <h3 className="font-bold text-lg text-foreground mb-6">Distribuição do seu perfil</h3>
+                                <h3 className="font-bold text-lg text-foreground mb-6">
+                                    Distribuição do seu perfil
+                                </h3>
                                 <div className="space-y-5">
                                     {(["D", "I", "S", "C"] as const).map((key) => {
                                         const count = scores[key] ?? 0;
@@ -215,7 +277,9 @@ export default function DiscProfilePage() {
                                         return (
                                             <div key={key}>
                                                 <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                                                    <span className="font-semibold text-foreground">{profileNames[key]}</span>
+                                                    <span className="font-semibold text-foreground">
+                                                        {profileNames[key]}
+                                                    </span>
                                                     <span className="font-medium">{pct}%</span>
                                                 </div>
                                                 <div className="h-2.5 bg-primary/10 rounded-full overflow-hidden">
@@ -245,7 +309,10 @@ export default function DiscProfilePage() {
                             </h3>
                             <div className="space-y-4">
                                 {profile.tips.map((tip, i) => (
-                                    <div key={i} className="flex items-start gap-4 text-sm text-muted-foreground p-3 rounded-xl hover:bg-white/5 dark:hover:bg-black/20 transition-colors">
+                                    <div
+                                        key={i}
+                                        className="flex items-start gap-4 text-sm text-muted-foreground p-3 rounded-xl hover:bg-white/5 dark:hover:bg-black/20 transition-colors"
+                                    >
                                         <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 shadow-sm">
                                             {i + 1}
                                         </span>
@@ -255,6 +322,22 @@ export default function DiscProfilePage() {
                             </div>
                         </motion.div>
                     </div>
+
+                    {/* Retake button */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex justify-center mt-2"
+                    >
+                        <Button
+                            onClick={() => navigate("/disc")}
+                            variant="outline"
+                            className="w-full max-w-md glass-card border-0 bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 hover:from-orange-500 hover:via-orange-600 hover:to-orange-700 text-white rounded-xl font-semibold px-8 h-12 shadow-md hover:shadow-lg transition-all"
+                        >
+                            <RefreshCw className="h-4 w-4 mr-2" /> Refazer o Teste DISC
+                        </Button>
+                    </motion.div>
                 </div>
             </div>
         </div>
