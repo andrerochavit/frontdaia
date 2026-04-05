@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, RefreshCw, Brain } from "lucide-react";
+import { ArrowLeft, CheckCircle, RefreshCw, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NavMenuButton from "@/components/NavMenuButton";
@@ -193,7 +193,7 @@ export default function DiscProfilePage() {
                         <NavMenuButton />
                         <div>
                             <div className="flex items-center gap-3 mb-1">
-                                <Brain className="h-8 w-8 text-orange-500" />
+                                <ClipboardList className="h-8 w-8 text-orange-500" />
                                 <h1 className="text-2xl md:text-3xl bg-gradient-to-r from-orange-500 to-rose-400 bg-clip-text text-transparent font-bold">
                                     Perfil DISC
                                 </h1>

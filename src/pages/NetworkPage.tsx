@@ -671,13 +671,12 @@ export default function NetworkPage() {
                         <NavMenuButton />
 
                         <div className="w-full">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 mb-1">
+                                <UserCircle className="h-8 w-8 text-emerald-500" />
 
-                                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shrink-0">
-                                        <UserCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                                    </div>
-                                    Perfil
+                                <h1 className="text-2xl md:text-3xl bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent font-bold">
+
+                                    Rede de Contatos
                                 </h1>
 
                                 {/* Mobile only */}
@@ -979,295 +978,295 @@ export default function NetworkPage() {
                                             transition={{ delay: index * 0.03 }}
                                             className="glass-card rounded-2xl p-5 hover:shadow-md transition-all duration-200 group"
                                         >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                        <button
-                                                          className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 transition-transform active:scale-95 hover:scale-105 ${roleAvatars[contact.role] || roleAvatars.outro}`}
-                                                          title="Mudar ícone"
-                                                      >
-                                                          {(() => {
-                                                            const iconId = resolveContactIconId(contact);
-                                                            const IconComp = getContactIcon(iconId);
-                                                              return <IconComp className="h-5 w-5 opacity-80" />;
-                                                          })()}
-                                                      </button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-48 p-2 glass-card border-white/20">
-                                                    <div className="grid grid-cols-4 gap-2">
-                                                        {CONTACT_ICONS.map((item) => (
-                                                              <button
-                                                                  key={item.id}
-                                                                  onClick={() => handleUpdateAvatar(contact.id, item.id)}
-                                                                  className={`p-2 rounded-lg hover:bg-primary/10 transition-colors flex items-center justify-center ${resolveContactIconId(contact) === item.id ? 'bg-primary/20' : ''}`}
-                                                              >
-                                                                  <item.icon className="h-4 w-4" />
-                                                              </button>
-                                                        ))}
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button
+                                                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0 transition-transform active:scale-95 hover:scale-105 ${roleAvatars[contact.role] || roleAvatars.outro}`}
+                                                                title="Mudar ícone"
+                                                            >
+                                                                {(() => {
+                                                                    const iconId = resolveContactIconId(contact);
+                                                                    const IconComp = getContactIcon(iconId);
+                                                                    return <IconComp className="h-5 w-5 opacity-80" />;
+                                                                })()}
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-48 p-2 glass-card border-white/20">
+                                                            <div className="grid grid-cols-4 gap-2">
+                                                                {CONTACT_ICONS.map((item) => (
+                                                                    <button
+                                                                        key={item.id}
+                                                                        onClick={() => handleUpdateAvatar(contact.id, item.id)}
+                                                                        className={`p-2 rounded-lg hover:bg-primary/10 transition-colors flex items-center justify-center ${resolveContactIconId(contact) === item.id ? 'bg-primary/20' : ''}`}
+                                                                    >
+                                                                        <item.icon className="h-4 w-4" />
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <div>
+                                                        <h3 className="font-semibold text-foreground text-sm leading-tight">
+                                                            {contact.name}
+                                                        </h3>
+                                                        {contact.extracted_experience && (
+                                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                                                {contact.extracted_experience}
+                                                            </p>
+                                                        )}
+                                                        <span
+                                                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold mt-1.5 ${roleColors[contact.role] || roleColors.outro
+                                                                }`}
+                                                        >
+                                                            {getRoleLabel(contact.role)}
+                                                        </span>
                                                     </div>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <div>
-                                                <h3 className="font-semibold text-foreground text-sm leading-tight">
-                                                    {contact.name}
-                                                </h3>
-                                                {contact.extracted_experience && (
-                                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                                        {contact.extracted_experience}
-                                                    </p>
-                                                )}
-                                                <span
-                                                    className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-semibold mt-1.5 ${roleColors[contact.role] || roleColors.outro
-                                                        }`}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDelete(contact.id)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                                    title="Remover contato"
                                                 >
-                                                    {getRoleLabel(contact.role)}
-                                                </span>
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
                                             </div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDelete(contact.id)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                            title="Remover contato"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
 
-                                    {/* Skills */}
-                                    {contact.extracted_skills?.length > 0 && (
-                                        <div className="mb-3">
-                                            <div className="flex items-center gap-1.5 mb-1.5">
-                                                <Star className="h-3 w-3 text-amber-500" />
-                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                                                    Skills
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-wrap gap-1">
-                                                {contact.extracted_skills.slice(0, 5).map((skill: string, i: number) => (
-                                                    <span
-                                                        key={i}
-                                                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary"
-                                                    >
-                                                        {skill}
+                                            {/* Skills */}
+                                            {contact.extracted_skills?.length > 0 && (
+                                                <div className="mb-3">
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Star className="h-3 w-3 text-amber-500" />
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                            Skills
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {contact.extracted_skills.slice(0, 5).map((skill: string, i: number) => (
+                                                            <span
+                                                                key={i}
+                                                                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary"
+                                                            >
+                                                                {skill}
+                                                            </span>
+                                                        ))}
+                                                        {contact.extracted_skills.length > 5 && (
+                                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/5 text-muted-foreground">
+                                                                +{contact.extracted_skills.length - 5}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {hasTextualPossibleValue(contact.possible_value) && (
+                                                <div className="mb-3">
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <Sparkles className="h-3 w-3 text-primary" />
+                                                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                                                            Como esse contato pode ajudar
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                        {contact.possible_value}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* File badge */}
+                                            {contact.file_name && (
+                                                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/50">
+                                                    <FileText className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-[10px] text-muted-foreground truncate">
+                                                        {contact.file_name}
                                                     </span>
-                                                ))}
-                                                {contact.extracted_skills.length > 5 && (
-                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/5 text-muted-foreground">
-                                                        +{contact.extracted_skills.length - 5}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {hasTextualPossibleValue(contact.possible_value) && (
-                                        <div className="mb-3">
-                                            <div className="flex items-center gap-1.5 mb-1.5">
-                                                <Sparkles className="h-3 w-3 text-primary" />
-                                                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                                                    Como esse contato pode ajudar
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                                {contact.possible_value}
-                                            </p>
-                                        </div>
-                                    )}
+                                                </div>
+                                            )}
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+                        )}
+                    </section>
+                </div>
 
-                                    {/* File badge */}
-                                    {contact.file_name && (
-                                        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-border/50">
-                                            <FileText className="h-3 w-3 text-muted-foreground" />
-                                            <span className="text-[10px] text-muted-foreground truncate">
-                                                {contact.file_name}
-                                            </span>
-                                        </div>
-                                    )}
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </div>
-                )}
-                </section>
-            </div>
-
-            {/* Add Contact Modal */}
-            <AnimatePresence>
-                {showModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                    >
-                        {/* Backdrop */}
+                {/* Add Contact Modal */}
+                <AnimatePresence>
+                    {showModal && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                            onClick={() => {
-                                if (!submitting) {
-                                    setShowModal(false);
-                                    resetForm();
-                                }
-                            }}
-                        />
-
-                        {/* Modal Content */}
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative glass-card rounded-2xl p-6 w-full max-w-md shadow-2xl"
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
                         >
-                            {/* Close button */}
-                            <button
+                            {/* Backdrop */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
                                 onClick={() => {
                                     if (!submitting) {
                                         setShowModal(false);
                                         resetForm();
                                     }
                                 }}
-                                className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground"
+                            />
+
+                            {/* Modal Content */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                className="relative glass-card rounded-2xl p-6 w-full max-w-md shadow-2xl"
                             >
-                                <X className="h-4 w-4" />
-                            </button>
+                                {/* Close button */}
+                                <button
+                                    onClick={() => {
+                                        if (!submitting) {
+                                            setShowModal(false);
+                                            resetForm();
+                                        }
+                                    }}
+                                    className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-primary/10 transition-colors text-muted-foreground"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
 
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md">
-                                    <Plus className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-bold text-foreground">
-                                        Novo Contato Estratégico
-                                    </h2>
-                                    <p className="text-xs text-muted-foreground">
-                                        Adicione à sua rede profissional
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                {/* Name */}
-                                <div>
-                                    <Label htmlFor="contact-name" className="text-sm font-medium text-foreground">
-                                        Nome
-                                    </Label>
-                                    <Input
-                                        id="contact-name"
-                                        placeholder="Nome do contato"
-                                        value={formName}
-                                        onChange={(e) => setFormName(e.target.value)}
-                                        className="glass-input rounded-xl mt-1.5"
-                                        disabled={submitting}
-                                    />
-                                </div>
-
-                                {/* Role */}
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">
-                                        Tipo de Contato
-                                    </Label>
-                                    <Select value={formRole} onValueChange={setFormRole} disabled={submitting}>
-                                        <SelectTrigger className="glass-input rounded-xl mt-1.5">
-                                            <SelectValue placeholder="Selecione o tipo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {roleOptions.map((opt) => (
-                                                <SelectItem key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* File Upload */}
-                                <div>
-                                    <Label className="text-sm font-medium text-foreground">
-                                        Currículo / Documento{" "}
-                                        <span className="text-muted-foreground font-normal">(opcional)</span>
-                                    </Label>
-                                    <div className="mt-1.5">
-                                        {formFile ? (
-                                            <div className="flex items-center gap-2 glass-card rounded-xl px-4 py-3">
-                                                <FileText className="h-4 w-4 text-primary shrink-0" />
-                                                <span className="text-sm text-foreground truncate flex-1">
-                                                    {formFile.name}
-                                                </span>
-                                                <button
-                                                    onClick={() => {
-                                                        setFormFile(null);
-                                                        if (fileInputRef.current) fileInputRef.current.value = "";
-                                                    }}
-                                                    className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                                    disabled={submitting}
-                                                >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="w-full glass-card rounded-xl px-4 py-6 border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors text-center cursor-pointer"
-                                                disabled={submitting}
-                                            >
-                                                <Upload className="h-6 w-6 text-primary/40 mx-auto mb-2" />
-                                                <p className="text-sm text-muted-foreground">
-                                                    Clique para enviar PDF ou DOCX
-                                                </p>
-                                                <p className="text-[10px] text-muted-foreground/60 mt-1">
-                                                    O texto do documento será salvo automaticamente
-                                                </p>
-                                            </button>
-                                        )}
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept=".pdf,.docx"
-                                            onChange={handleFileChange}
-                                            className="hidden"
-                                        />
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md">
+                                        <Plus className="h-5 w-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-foreground">
+                                            Novo Contato Estratégico
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground">
+                                            Adicione à sua rede profissional
+                                        </p>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-3 mt-6">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        resetForm();
-                                    }}
-                                    disabled={submitting}
-                                    className="flex-1 glass-card border-0 hover:bg-white/70 dark:hover:bg-white/10 rounded-xl"
-                                >
-                                    Cancelar
-                                </Button>
-                                <Button
-                                    onClick={handleSubmit}
-                                    disabled={submitting}
-                                    className="flex-1 btn-gradient rounded-xl font-semibold"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Processando...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Briefcase className="h-4 w-4 mr-2" />
-                                            Adicionar
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
+                                <div className="space-y-4">
+                                    {/* Name */}
+                                    <div>
+                                        <Label htmlFor="contact-name" className="text-sm font-medium text-foreground">
+                                            Nome
+                                        </Label>
+                                        <Input
+                                            id="contact-name"
+                                            placeholder="Nome do contato"
+                                            value={formName}
+                                            onChange={(e) => setFormName(e.target.value)}
+                                            className="glass-input rounded-xl mt-1.5"
+                                            disabled={submitting}
+                                        />
+                                    </div>
+
+                                    {/* Role */}
+                                    <div>
+                                        <Label className="text-sm font-medium text-foreground">
+                                            Tipo de Contato
+                                        </Label>
+                                        <Select value={formRole} onValueChange={setFormRole} disabled={submitting}>
+                                            <SelectTrigger className="glass-input rounded-xl mt-1.5">
+                                                <SelectValue placeholder="Selecione o tipo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {roleOptions.map((opt) => (
+                                                    <SelectItem key={opt.value} value={opt.value}>
+                                                        {opt.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    {/* File Upload */}
+                                    <div>
+                                        <Label className="text-sm font-medium text-foreground">
+                                            Currículo / Documento{" "}
+                                            <span className="text-muted-foreground font-normal">(opcional)</span>
+                                        </Label>
+                                        <div className="mt-1.5">
+                                            {formFile ? (
+                                                <div className="flex items-center gap-2 glass-card rounded-xl px-4 py-3">
+                                                    <FileText className="h-4 w-4 text-primary shrink-0" />
+                                                    <span className="text-sm text-foreground truncate flex-1">
+                                                        {formFile.name}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => {
+                                                            setFormFile(null);
+                                                            if (fileInputRef.current) fileInputRef.current.value = "";
+                                                        }}
+                                                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                                        disabled={submitting}
+                                                    >
+                                                        <X className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="w-full glass-card rounded-xl px-4 py-6 border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors text-center cursor-pointer"
+                                                    disabled={submitting}
+                                                >
+                                                    <Upload className="h-6 w-6 text-primary/40 mx-auto mb-2" />
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Clique para enviar PDF ou DOCX
+                                                    </p>
+                                                    <p className="text-[10px] text-muted-foreground/60 mt-1">
+                                                        O texto do documento será salvo automaticamente
+                                                    </p>
+                                                </button>
+                                            )}
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept=".pdf,.docx"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 mt-6">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setShowModal(false);
+                                            resetForm();
+                                        }}
+                                        disabled={submitting}
+                                        className="flex-1 glass-card border-0 hover:bg-white/70 dark:hover:bg-white/10 rounded-xl"
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        onClick={handleSubmit}
+                                        disabled={submitting}
+                                        className="flex-1 btn-gradient rounded-xl font-semibold"
+                                    >
+                                        {submitting ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Processando...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Briefcase className="h-4 w-4 mr-2" />
+                                                Adicionar
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
