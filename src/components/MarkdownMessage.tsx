@@ -1,6 +1,5 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeSanitize from "rehype-sanitize";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
@@ -9,7 +8,6 @@ export default function MarkdownMessage({ content }: { content: string }) {
     <div className="markdown-body text-sm leading-relaxed">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[[rehypeSanitize]]}
         components={{
           h1: ({ children }) => (
             <h1 className="text-lg font-bold mt-3 mb-1.5 text-foreground">{children}</h1>
