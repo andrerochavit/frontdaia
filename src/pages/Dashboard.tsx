@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Navigation, Target, Users, TrendingUp, MessageSquare, LogOut, Brain, Network, Sparkles, Rocket, ClipboardList, UserCircle } from "lucide-react";
+import { Navigation, Target, Users, TrendingUp, MessageSquare, LogOut, Brain, Network, Sparkles, Rocket, ClipboardList, UserCircle, Zap, Star, Shield, Microscope } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -19,28 +19,31 @@ interface EffectuationProfileData {
   quem_conheco: string[];
 }
 
-const profileDescriptions: Record<string, { name: string; emoji: string; color: string; description: string }> = {
+const profileIcons: Record<string, React.ReactNode> = {
+  D: <Zap className="h-5 w-5 text-white drop-shadow-sm" />,
+  I: <Star className="h-5 w-5 text-white drop-shadow-sm" />,
+  S: <Shield className="h-5 w-5 text-white drop-shadow-sm" />,
+  C: <Microscope className="h-5 w-5 text-white drop-shadow-sm" />,
+};
+
+const profileDescriptions: Record<string, { name: string; color: string; description: string }> = {
   D: {
     name: "Dominante",
-    emoji: "✍️",
     color: "from-red-400 to-rose-500",
     description: "Orientado a resultados, direto e determinado.",
   },
   I: {
     name: "Influente",
-    emoji: "✨",
     color: "from-amber-400 to-orange-500",
     description: "Comunicativo, entusiasta e ótimo em criar conexões.",
   },
   S: {
     name: "Estável",
-    emoji: "🌿",
     color: "from-emerald-400 to-teal-500",
     description: "Paciente, confiável e metódico.",
   },
   C: {
     name: "Conforme",
-    emoji: "🔬",
     color: "from-blue-400 to-indigo-500",
     description: "Analítico, preciso e orientado a qualidade.",
   },
@@ -320,7 +323,7 @@ export default function Dashboard() {
               className="group glass-card rounded-xl p-4 border-0 flex flex-col items-center justify-center text-center hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
             >
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${discProfile.color} flex items-center justify-center shadow-sm mb-2`}>
-                <span className="text-lg">{discProfile.emoji}</span>
+                {discResult && profileIcons[discResult]}
               </div>
               <h3 className="text-sm font-semibold text-foreground">DISC: {discProfile.name}</h3>
               <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">Ver meu perfil</p>
@@ -347,7 +350,7 @@ export default function Dashboard() {
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <span className="text-2xl"></span> Seu Perfil Effectuation
+              Seu Perfil Effectuation
             </h2>
             {hasProfile && (
               <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium glass-card px-3 py-1.5 rounded-full">

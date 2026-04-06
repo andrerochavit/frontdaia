@@ -2,20 +2,26 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, RefreshCw, ClipboardList } from "lucide-react";
+import { ArrowLeft, CheckCircle, RefreshCw, ClipboardList, Zap, Star, Shield, Microscope } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import NavMenuButton from "@/components/NavMenuButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const profileIcons: Record<string, React.ReactNode> = {
+    D: <Zap className="w-10 h-10 text-white drop-shadow-sm" />,
+    I: <Star className="w-10 h-10 text-white drop-shadow-sm" />,
+    S: <Shield className="w-10 h-10 text-white drop-shadow-sm" />,
+    C: <Microscope className="w-10 h-10 text-white drop-shadow-sm" />,
+};
+
 const profileDescriptions: Record<
     string,
-    { name: string; emoji: string; color: string; description: string; strengths: string[]; tips: string[] }
+    { name: string; color: string; description: string; strengths: string[]; tips: string[] }
 > = {
     D: {
         name: "Dominante",
-        emoji: "✍️",
         color: "from-red-400 to-rose-500",
         description:
             "Você é orientado a resultados, direto e determinado. Empreendedores com perfil D são ótimos para tomar decisões rápidas e liderar em momentos de pressão.",
@@ -28,7 +34,6 @@ const profileDescriptions: Record<
     },
     I: {
         name: "Influente",
-        emoji: "✨",
         color: "from-amber-400 to-orange-500",
         description:
             "Você é comunicativo, entusiasta e ótimo em criar conexões. Empreendedores com perfil I são naturais em networking, vendas e em inspirar equipes.",
@@ -41,7 +46,6 @@ const profileDescriptions: Record<
     },
     S: {
         name: "Estável",
-        emoji: "🌿",
         color: "from-emerald-400 to-teal-500",
         description:
             "Você é paciente, confiável e metódico. Empreendedores com perfil S são ótimos em construir negócios sólidos e manter equipes coesas a longo prazo.",
@@ -54,7 +58,6 @@ const profileDescriptions: Record<
     },
     C: {
         name: "Conforme",
-        emoji: "🔬",
         color: "from-blue-400 to-indigo-500",
         description:
             "Você é analítico, preciso e orientado a qualidade. Empreendedores com perfil C são ótimos em criar produtos excelentes e tomar decisões baseadas em dados.",
@@ -230,7 +233,7 @@ export default function DiscProfilePage() {
                         <div
                             className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${profile.color} flex items-center justify-center mb-5 shadow-lg`}
                         >
-                            <span className="text-4xl">{profile.emoji}</span>
+                            {profileIcons[dominant]}
                         </div>
                         <h2 className="text-xl font-bold text-foreground mb-3">
                             Perfil:{" "}
@@ -305,7 +308,7 @@ export default function DiscProfilePage() {
                             className="glass-card rounded-2xl p-6 sm:p-8 flex-1"
                         >
                             <h3 className="font-bold text-lg text-foreground mb-6 flex items-center gap-2">
-                                <span className="text-xl">💡</span> Dicas para o seu sucesso
+                                Dicas para o seu sucesso
                             </h3>
                             <div className="space-y-4">
                                 {profile.tips.map((tip, i) => (

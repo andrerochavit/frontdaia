@@ -9,6 +9,10 @@ import {
     ChevronRight,
     CheckCircle,
     ClipboardList,
+    Zap,
+    Star,
+    Shield,
+    Microscope,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -125,13 +129,19 @@ const discQuestions: DiscQuestion[] = [
     },
 ];
 
+const profileIcons: Record<string, React.ReactNode> = {
+    D: <Zap className="w-10 h-10 text-white drop-shadow-sm" />,
+    I: <Star className="w-10 h-10 text-white drop-shadow-sm" />,
+    S: <Shield className="w-10 h-10 text-white drop-shadow-sm" />,
+    C: <Microscope className="w-10 h-10 text-white drop-shadow-sm" />,
+};
+
 const profileDescriptions: Record<
     string,
-    { name: string; emoji: string; color: string; description: string; strengths: string[]; tips: string[] }
+    { name: string; color: string; description: string; strengths: string[]; tips: string[] }
 > = {
     D: {
         name: "Dominante",
-        emoji: "🔥",
         color: "from-red-400 to-rose-500",
         description:
             "Você é orientado a resultados, direto e determinado. Empreendedores com perfil D são ótimos para tomar decisões rápidas e liderar em momentos de pressão.",
@@ -144,7 +154,6 @@ const profileDescriptions: Record<
     },
     I: {
         name: "Influente",
-        emoji: "✨",
         color: "from-amber-400 to-orange-500",
         description:
             "Você é comunicativo, entusiasta e ótimo em criar conexões. Empreendedores com perfil I são naturais em networking, vendas e em inspirar equipes.",
@@ -157,7 +166,6 @@ const profileDescriptions: Record<
     },
     S: {
         name: "Estável",
-        emoji: "🌿",
         color: "from-emerald-400 to-teal-500",
         description:
             "Você é paciente, confiável e metódico. Empreendedores com perfil S são ótimos em construir negócios sólidos e manter equipes coesas a longo prazo.",
@@ -170,7 +178,6 @@ const profileDescriptions: Record<
     },
     C: {
         name: "Conforme",
-        emoji: "🔬",
         color: "from-blue-400 to-indigo-500",
         description:
             "Você é analítico, preciso e orientado a qualidade. Empreendedores com perfil C são ótimos em criar produtos excelentes e tomar decisões baseadas em dados.",
@@ -293,7 +300,7 @@ export default function DiscFormPage() {
             });
         } else {
             toast({
-                title: "Perfil DISC atualizado! ✅",
+                title: "✅ Perfil DISC atualizado!",
                 description: "Redirecionando para a Home...",
             });
         }
@@ -326,7 +333,7 @@ export default function DiscFormPage() {
                         <div
                             className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${profile.color} flex items-center justify-center mx-auto mb-5 shadow-lg`}
                         >
-                            <span className="text-4xl">{profile.emoji}</span>
+                            {profileIcons[result]}
                         </div>
                         <h2 className="text-2xl font-bold text-foreground mb-1">
                             Seu Perfil: {profile.name}
