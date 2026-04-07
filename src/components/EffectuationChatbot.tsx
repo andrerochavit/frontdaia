@@ -41,6 +41,7 @@ interface DisplayMessage {
   text: string;
   isBot: boolean;
   timestamp: string;
+  isStreaming?: boolean;
 }
 
 interface OnboardingData {
@@ -213,6 +214,7 @@ const EffectuationChatbot = ({
       text: "",
       isBot: true,
       timestamp,
+      isStreaming: true,
     };
 
     // Trava o estado de carregamento ANTES de atualizar a lista de mensagens
@@ -271,6 +273,13 @@ const EffectuationChatbot = ({
       streamAbortRef.current = abort;
 
       const fullAnswer = await promise;
+
+      // Mark streaming as done so MarkdownMessage renders full markdown
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempBotId ? { ...m, isStreaming: false } : m
+        )
+      );
 
       // Build a local-only record for the assistant (backend persists to DB)
       const localBotMsg: ChatMessage = {
@@ -441,7 +450,10 @@ const EffectuationChatbot = ({
                           <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }}></div>
                         </div>
                       ) : (
-                        <MarkdownMessage content={message.text} />
+                        <MarkdownMessage
+                          content={message.text}
+                          isStreaming={message.isStreaming}
+                        />
                       )}
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-0.5 px-1">

@@ -203,43 +203,52 @@ export function sendChatMessageStream(
       buffer += decoder.decode(value, { stream: true });
 
       // Parse SSE events from the buffer
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || ""; // keep the incomplete line
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
 
-      let currentEvent = "";
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          currentEvent = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
-          const data = line.slice(6);
+      for (const eventBlock of events) {
+        let currentEvent = "";
+        let data = "";
 
-          switch (currentEvent) {
-            case "ready":
-              callbacks.onReady?.();
-              break;
-            case "delta":
-              fullAnswer += data;
-              callbacks.onDelta?.(data);
-              break;
-            case "done":
-              try {
-                const payload = JSON.parse(data) as StreamDonePayload;
-                callbacks.onDone?.(payload);
-              } catch {
-                callbacks.onDone?.({
-                  session_id: req.sessionId,
-                  tasks_added: 0,
-                  has_mvp: false,
-                });
-              }
-              break;
-            case "error":
-              callbacks.onError?.(data);
-              break;
+        const lines = eventBlock.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            data += line.slice(6);
           }
-          currentEvent = "";
+        }
+
+        switch (currentEvent) {
+          case "ready":
+            callbacks.onReady?.();
+            break;
+
+          case "delta":
+            fullAnswer += data;
+            callbacks.onDelta?.(data);
+            break;
+
+          case "done":
+            try {
+              const payload = JSON.parse(data);
+              callbacks.onDone?.(payload);
+            } catch {
+              callbacks.onDone?.({
+                session_id: req.sessionId,
+                tasks_added: 0,
+                has_mvp: false,
+              });
+            }
+            break;
+
+          case "error":
+            callbacks.onError?.(data);
+            break;
         }
       }
+
     }
 
     return fullAnswer;
