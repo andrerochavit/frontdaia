@@ -216,7 +216,12 @@ export function sendChatMessageStream(
           if (line.startsWith("event: ")) {
             currentEvent = line.slice(7).trim();
           } else if (line.startsWith("data: ")) {
+            // Per SSE spec, join multiple data: lines with \n
+            if (data.length > 0) data += "\n";
             data += line.slice(6);
+          } else if (line.startsWith("data:")) {
+            if (data.length > 0) data += "\n";
+            data += line.slice(5);
           }
         }
 
@@ -225,10 +230,14 @@ export function sendChatMessageStream(
             callbacks.onReady?.();
             break;
 
-          case "delta":
-            fullAnswer += data;
-            callbacks.onDelta?.(data);
+          case "delta": {
+            // When the LLM emits a \n token, SSE turns it into an empty
+            // data field (the newline byte terminates the line). Recover it.
+            const text = data === "" ? "\n" : data;
+            fullAnswer += text;
+            callbacks.onDelta?.(text);
             break;
+          }
 
           case "done":
             try {

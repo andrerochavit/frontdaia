@@ -173,7 +173,7 @@ export function AIMindMap({ onClose }: AIMindMapProps) {
       ]);
 
       toast({
-        title: "Mapa mental gerado! ✨",
+        title: "Mapa mental gerado!",
         description: "Clique nos nós para expandir ou editar",
       });
     } catch (error) {
@@ -225,7 +225,7 @@ export function AIMindMap({ onClose }: AIMindMapProps) {
     const childIndex = parentChildren.length;
     const angle = (childIndex * Math.PI) / 3;
     const radius = 150;
-    
+
     const newNode: Node = {
       id: newId,
       type: "default",

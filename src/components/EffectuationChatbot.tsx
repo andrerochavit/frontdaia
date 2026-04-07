@@ -281,6 +281,30 @@ const EffectuationChatbot = ({
         )
       );
 
+      // Fetch the authoritative message text from the DB.
+      // The backend persists the complete answer with correct newlines;
+      // the SSE stream may lose some whitespace, so this is the safety net.
+      try {
+        const { data: dbRow } = await supabase
+          .from("chat_messages")
+          .select("content")
+          .eq("session_id", sessionId)
+          .eq("role", "assistant")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (dbRow?.content) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempBotId ? { ...m, text: dbRow.content } : m
+            )
+          );
+        }
+      } catch {
+        // DB fetch failed — keep the streamed text as-is
+      }
+
       // Build a local-only record for the assistant (backend persists to DB)
       const localBotMsg: ChatMessage = {
         id: tempBotId,
