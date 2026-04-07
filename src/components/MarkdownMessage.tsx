@@ -4,18 +4,12 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 export default function MarkdownMessage({
   content,
-  isStreaming,
 }: {
   content: string;
   isStreaming?: boolean;
 }) {
   return (
     <div className="markdown-body text-sm leading-relaxed">
-      {isStreaming ? (
-        //  TEXTO PURO DURANTE STREAM
-        <div className="whitespace-pre-wrap">{content}</div>
-      ) : (
-        //  MARKDOWN FINAL
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
@@ -91,7 +85,6 @@ export default function MarkdownMessage({
         >
           {content}
         </ReactMarkdown>
-      )}
     </div>
   );
 }
